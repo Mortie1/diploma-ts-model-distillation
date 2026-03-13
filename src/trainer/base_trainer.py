@@ -30,6 +30,7 @@ class BaseTrainer:
         epoch_len=None,
         skip_oom=True,
         batch_transforms=None,
+        distillation=None,
     ):
         """
         Args:
@@ -71,6 +72,7 @@ class BaseTrainer:
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
         self.batch_transforms = batch_transforms
+        self.distillation = distillation
 
         # define dataloaders
         self.train_dataloader = dataloaders["train"]
@@ -472,6 +474,8 @@ class BaseTrainer:
             "monitor_best": self.mnt_best,
             "config": self.config,
         }
+        if self.distillation is not None:
+            state["distillation_state_dict"] = self.distillation.state_dict()
         filename = str(self.checkpoint_dir / f"checkpoint-epoch{epoch}.pth")
         if not (only_best and save_best):
             torch.save(state, filename)
@@ -499,7 +503,7 @@ class BaseTrainer:
         """
         resume_path = str(resume_path)
         self.logger.info(f"Loading checkpoint: {resume_path} ...")
-        checkpoint = torch.load(resume_path, self.device)
+        checkpoint = torch.load(resume_path, self.device, weights_only=False)
         self.start_epoch = checkpoint["epoch"] + 1
         self.mnt_best = checkpoint["monitor_best"]
 
@@ -510,6 +514,8 @@ class BaseTrainer:
                 "of the checkpoint. This may yield an exception when state_dict is loaded."
             )
         self.model.load_state_dict(checkpoint["state_dict"])
+        if self.distillation is not None and checkpoint.get("distillation_state_dict") is not None:
+            self.distillation.load_state_dict(checkpoint["distillation_state_dict"])
 
         # load optimizer state from checkpoint only when optimizer type is not changed.
         if (
@@ -545,9 +551,12 @@ class BaseTrainer:
             self.logger.info(f"Loading model weights from: {pretrained_path} ...")
         else:
             print(f"Loading model weights from: {pretrained_path} ...")
-        checkpoint = torch.load(pretrained_path, self.device)
+        checkpoint = torch.load(pretrained_path, self.device, weights_only=False)
 
         if checkpoint.get("state_dict") is not None:
             self.model.load_state_dict(checkpoint["state_dict"])
         else:
             self.model.load_state_dict(checkpoint)
+
+        if self.distillation is not None and checkpoint.get("distillation_state_dict") is not None:
+            self.distillation.load_state_dict(checkpoint["distillation_state_dict"])

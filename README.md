@@ -124,6 +124,44 @@ To run inference (evaluate the model or save predictions):
 python3 inference.py HYDRA_CONFIG_ARGUMENTS
 ```
 
+### Experiment Presets (Diploma)
+
+The repository now includes two experiment tracks:
+
+- `classification`: TS classification baselines and cross-modal distillation.
+- `forecasting`: TS forecasting baselines and cross-modal distillation.
+
+Run presets:
+
+```bash
+# Classification baseline
+python3 train.py -cn=classification_baseline
+
+# Classification + distillation (mock teacher by default)
+python3 train.py -cn=classification_distill
+
+# Forecasting baseline
+python3 train.py -cn=forecasting_baseline
+
+# Forecasting + distillation (mock teacher by default)
+python3 train.py -cn=forecasting_distill
+```
+
+Inference + bootstrap CI evaluation:
+
+```bash
+python3 inference.py -cn=classification_inference
+python3 src/benchmarks/run_eval.py --task classification --pred-dir data/saved/classification_predictions
+```
+
+For audio foundation teachers via HF, set:
+
+```bash
+python3 train.py -cn=classification_distill \
+  distillation.teacher_backend=hf \
+  distillation.teacher_model_name=facebook/hubert-base-ls960
+```
+
 ## Useful Links:
 
 You may find the following links useful:

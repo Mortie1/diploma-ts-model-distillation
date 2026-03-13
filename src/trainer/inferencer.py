@@ -58,6 +58,7 @@ class Inferencer(BaseTrainer):
 
         self.model = model
         self.batch_transforms = batch_transforms
+        self.distillation = None
 
         # define dataloaders
         self.evaluation_dataloaders = {k: v for k, v in dataloaders.items()}
@@ -129,22 +130,30 @@ class Inferencer(BaseTrainer):
         # Some saving logic. This is an example
         # Use if you need to save predictions on disk
 
-        batch_size = batch["logits"].shape[0]
+        if "logits" in batch:
+            batch_size = batch["logits"].shape[0]
+        elif "forecast" in batch:
+            batch_size = batch["forecast"].shape[0]
+        else:
+            raise KeyError("Expected `logits` or `forecast` in model outputs")
         current_id = batch_idx * batch_size
 
         for i in range(batch_size):
-            # clone because of
-            # https://github.com/pytorch/pytorch/issues/1995
-            logits = batch["logits"][i].clone()
-            label = batch["labels"][i].clone()
-            pred_label = logits.argmax(dim=-1)
-
             output_id = current_id + i
-
-            output = {
-                "pred_label": pred_label,
-                "label": label,
-            }
+            if "logits" in batch:
+                logits = batch["logits"][i].clone()
+                label_key = "y" if "y" in batch else "labels"
+                label = batch[label_key][i].clone()
+                output = {
+                    "pred_label": logits.argmax(dim=-1),
+                    "label": label,
+                    "logits": logits,
+                }
+            else:
+                output = {
+                    "forecast": batch["forecast"][i].clone(),
+                    "target": batch["target"][i].clone(),
+                }
 
             if self.save_path is not None:
                 # you can use safetensors or other lib here
@@ -166,7 +175,8 @@ class Inferencer(BaseTrainer):
         self.is_train = False
         self.model.eval()
 
-        self.evaluation_metrics.reset()
+        if self.evaluation_metrics is not None:
+            self.evaluation_metrics.reset()
 
         # create Save dir
         if self.save_path is not None:
@@ -185,4 +195,6 @@ class Inferencer(BaseTrainer):
                     metrics=self.evaluation_metrics,
                 )
 
+        if self.evaluation_metrics is None:
+            return {}
         return self.evaluation_metrics.result()

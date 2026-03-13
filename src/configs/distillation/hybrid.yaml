@@ -1,0 +1,11 @@
+_target_: src.distillation.DistillationBridge
+enabled: false
+input_key: ${task.input_key}
+student_hidden_key: ${task.student_hidden_key}
+student_pred_key: ${task.student_pred_key}
+student_hidden_dim: 128
+student_pred_dim: 4
+teacher_backend: mock
+teacher_model_name: null
+teacher_hidden_dim: 256
+freeze_teacher: true

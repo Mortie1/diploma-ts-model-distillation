@@ -37,6 +37,10 @@ class Trainer(BaseTrainer):
         outputs = self.model(**batch)
         batch.update(outputs)
 
+        if self.is_train and self.distillation is not None:
+            distill_outputs = self.distillation(**batch)
+            batch.update(distill_outputs)
+
         all_losses = self.criterion(**batch)
         batch.update(all_losses)
 

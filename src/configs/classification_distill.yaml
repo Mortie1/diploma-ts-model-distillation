@@ -1,0 +1,44 @@
+defaults:
+  - /task: classification
+  - /model: student_classification
+  - /writer: local
+  - /metrics: classification
+  - /datasets: synthetic_classification
+  - /dataloader: smoke
+  - /transforms: plain
+  - /loss_function: classification_distill
+  - /distillation: hybrid
+  - _self_
+
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 3e-4
+
+lr_scheduler:
+  _target_: torch.optim.lr_scheduler.StepLR
+  gamma: 0.9
+  step_size: ${trainer.epoch_len}
+
+trainer:
+  log_step: 10
+  n_epochs: 5
+  epoch_len: 20
+  device_tensors: ${task.device_tensors}
+  resume_from: null
+  device: auto
+  override: True
+  monitor: "max test_Accuracy"
+  save_period: 1
+  early_stop: ${trainer.n_epochs}
+  save_dir: "saved"
+  seed: 42
+
+writer:
+  run_name: "classification_distill"
+
+distillation:
+  enabled: true
+  student_hidden_dim: 128
+  student_pred_dim: 4
+  teacher_backend: mock
+  teacher_hidden_dim: 256

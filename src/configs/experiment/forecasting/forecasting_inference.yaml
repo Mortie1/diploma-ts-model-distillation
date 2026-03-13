@@ -1,0 +1,15 @@
+defaults:
+  - /task: forecasting
+  - /model: student_forecasting
+  - /metrics: forecasting
+  - /datasets: synthetic_forecasting
+  - /dataloader: smoke
+  - /transforms: plain
+  - _self_
+
+inferencer:
+  device_tensors: ${task.device_tensors}
+  device: auto
+  save_path: "forecasting_predictions"
+  seed: 42
+  from_pretrained: "saved/local/model_best.pth"

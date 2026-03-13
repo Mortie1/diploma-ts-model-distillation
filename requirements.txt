@@ -1,13 +1,17 @@
-torch==2.2.0
-torchvision==0.17.0
+torch==2.10.0
+torchvision==0.25.0
 torchmetrics
-numpy==1.26.4
+numpy==2.4.3
+scikit-learn==1.8.0
+transformers==5.3.0
 tqdm
 matplotlib
 pandas
 wandb
 comet_ml
 hydra-core
+pyarrow
+pytest
 
 black
 isort

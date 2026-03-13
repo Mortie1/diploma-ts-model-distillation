@@ -23,8 +23,9 @@ class MetricTracker:
         """
         Reset all metrics after epoch end.
         """
-        for col in self._data.columns:
-            self._data[col].values[:] = 0
+        self._data.loc[:, "total"] = 0.0
+        self._data.loc[:, "counts"] = 0
+        self._data.loc[:, "average"] = 0.0
 
     def update(self, key, value, n=1):
         """

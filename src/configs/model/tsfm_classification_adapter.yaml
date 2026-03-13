@@ -1,0 +1,5 @@
+_target_: src.model.TSFMClassificationAdapter
+provider: "placeholder"
+model_id: "moment"
+n_classes: 4
+in_channels: 1

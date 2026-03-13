@@ -1,0 +1,5 @@
+_target_: src.logger.NullWriter
+run_name: "local"
+loss_names: ["loss", "task_loss"]
+log_checkpoints: False
+id_length: 8

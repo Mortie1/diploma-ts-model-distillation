@@ -1,0 +1,24 @@
+train:
+  _target_: src.datasets.SyntheticClassificationDataset
+  n_samples: 256
+  length: 256
+  n_classes: 4
+  n_channels: 1
+  name: "train"
+  instance_transforms: ${transforms.instance_transforms.train}
+val:
+  _target_: src.datasets.SyntheticClassificationDataset
+  n_samples: 64
+  length: 256
+  n_classes: 4
+  n_channels: 1
+  name: "val"
+  instance_transforms: ${transforms.instance_transforms.inference}
+test:
+  _target_: src.datasets.SyntheticClassificationDataset
+  n_samples: 64
+  length: 256
+  n_classes: 4
+  n_channels: 1
+  name: "test"
+  instance_transforms: ${transforms.instance_transforms.inference}

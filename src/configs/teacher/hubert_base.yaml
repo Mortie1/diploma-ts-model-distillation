@@ -1,0 +1,2 @@
+model_name: facebook/hubert-base-ls960
+hidden_dim: 768

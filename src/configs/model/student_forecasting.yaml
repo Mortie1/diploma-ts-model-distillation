@@ -1,0 +1,7 @@
+_target_: src.model.StudentForecaster
+in_channels: 1
+horizon: 24
+hidden_dim: 128
+n_heads: 4
+n_layers: 2
+dropout: 0.1

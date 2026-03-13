@@ -1,0 +1,7 @@
+name: forecasting
+input_key: context
+target_key: target
+prediction_key: forecast
+student_hidden_key: student_hidden
+student_pred_key: student_pred
+device_tensors: ["context", "target"]

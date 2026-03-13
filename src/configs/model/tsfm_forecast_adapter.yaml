@@ -1,0 +1,5 @@
+_target_: src.model.TSFMForecastAdapter
+provider: "placeholder"
+model_id: "chronos"
+horizon: 24
+in_channels: 1

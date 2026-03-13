@@ -1,4 +1,4 @@
-import torch
+from torch.utils.data._utils.collate import default_collate
 
 
 def collate_fn(dataset_items: list[dict]):
@@ -14,12 +14,6 @@ def collate_fn(dataset_items: list[dict]):
             of the tensors.
     """
 
-    result_batch = {}
-
-    # example of collate_fn
-    result_batch["data_object"] = torch.vstack(
-        [elem["data_object"] for elem in dataset_items]
-    )
-    result_batch["labels"] = torch.tensor([elem["labels"] for elem in dataset_items])
-
-    return result_batch
+    # Generic collation supports both classification and forecasting
+    # tasks as long as each dataset item is a dict of collatable values.
+    return default_collate(dataset_items)

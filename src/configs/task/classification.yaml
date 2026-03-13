@@ -1,0 +1,7 @@
+name: classification
+input_key: x
+target_key: y
+prediction_key: logits
+student_hidden_key: student_hidden
+student_pred_key: student_pred
+device_tensors: ["x", "y"]

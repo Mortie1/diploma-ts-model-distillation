@@ -41,12 +41,22 @@ def main(config):
     model = instantiate(config.model).to(device)
     logger.info(model)
 
+    distillation = None
+    if config.get("distillation") is not None and config.distillation.get("enabled", False):
+        distillation = instantiate(config.distillation).to(device)
+        logger.info("Distillation is enabled")
+
     # get function handles of loss and metrics
     loss_function = instantiate(config.loss_function).to(device)
     metrics = instantiate(config.metrics)
 
     # build optimizer, learning rate scheduler
-    trainable_params = filter(lambda p: p.requires_grad, model.parameters())
+    trainable_params = list(filter(lambda p: p.requires_grad, model.parameters()))
+    if distillation is not None:
+        distill_params = list(
+            filter(lambda p: p.requires_grad, distillation.parameters())
+        )
+        trainable_params.extend(distill_params)
     optimizer = instantiate(config.optimizer, params=trainable_params)
     lr_scheduler = instantiate(config.lr_scheduler, optimizer=optimizer)
 
@@ -68,6 +78,7 @@ def main(config):
         writer=writer,
         batch_transforms=batch_transforms,
         skip_oom=config.trainer.get("skip_oom", True),
+        distillation=distillation,
     )
 
     trainer.train()
