@@ -3,3 +3,9 @@ provider: "placeholder"
 model_id: "chronos"
 horizon: 24
 in_channels: 1
+require_provider_model: false
+finetune_mode: "none"
+lora_rank: 8
+lora_alpha: 16.0
+lora_dropout: 0.0
+lora_target_patterns: ["*"]

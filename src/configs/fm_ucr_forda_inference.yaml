@@ -1,0 +1,22 @@
+defaults:
+  - /task: classification
+  - /model: tsfm_classification_adapter
+  - /metrics: classification
+  - /datasets: ucr_forda
+  - /dataloader: smoke
+  - /transforms: plain
+  - _self_
+
+model:
+  provider: "moment"
+  model_id: "momentfm/MOMENT-1-large"
+  n_classes: 2
+  in_channels: 1
+
+inferencer:
+  device_tensors: ${task.device_tensors}
+  device: auto
+  require_cuda: false
+  save_path: "fm_ucr_forda_predictions"
+  seed: 42
+  from_pretrained: "saved/fm_ucr_forda_train/model_best.pth"

@@ -1,0 +1,44 @@
+defaults:
+  - /task: forecasting
+  - /model: tsfm_forecast_adapter
+  - /writer: local
+  - /metrics: forecasting
+  - /datasets: ett_etth1_h192
+  - /dataloader: smoke
+  - /transforms: plain
+  - /loss_function: forecasting
+  - /distillation: hybrid
+  - _self_
+
+model:
+  provider: "chronos"
+  model_id: "amazon/chronos-bolt-base"
+  in_channels: 7
+  horizon: 192
+
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 3e-4
+
+lr_scheduler:
+  _target_: torch.optim.lr_scheduler.StepLR
+  gamma: 0.9
+  step_size: 200
+
+trainer:
+  log_step: 50
+  n_epochs: 1
+  epoch_len: null
+  device_tensors: ${task.device_tensors}
+  resume_from: null
+  device: auto
+  require_cuda: false
+  override: True
+  monitor: "min test_MAE"
+  save_period: 1
+  early_stop: ${trainer.n_epochs}
+  save_dir: "saved"
+  seed: 42
+
+writer:
+  run_name: "fm_etth1_h192_train"

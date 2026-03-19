@@ -3,3 +3,5 @@ provider: "placeholder"
 model_id: "moment"
 n_classes: 4
 in_channels: 1
+require_provider_model: false
+freeze_provider: true

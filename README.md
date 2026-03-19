@@ -147,6 +147,76 @@ python3 train.py -cn=forecasting_baseline
 python3 train.py -cn=forecasting_distill
 ```
 
+To force GPU usage (fail fast if CUDA is not usable):
+
+```bash
+python3 train.py -cn=classification_baseline trainer.require_cuda=true
+python3 inference.py -cn=classification_inference inferencer.require_cuda=true
+```
+
+### Popular TSFM Benchmark Datasets
+
+The repo now includes configs for commonly used TSFM evaluation datasets:
+
+- Classification (UCR): `ECG200`, `FordA`, `Wafer`
+- Forecasting (ETT): `ETTh1`, `ETTh2`, `ETTm1`, `ETTm2`
+
+Datasets are downloaded automatically on first use if missing locally.
+By default they are stored under `data/raw/ucr` and `data/raw/ett`.
+
+Run examples:
+
+```bash
+# UCR FordA baseline
+python3 train.py -cn=classification_ucr_forda_baseline trainer.require_cuda=true
+
+# ETT ETTh1 baseline
+python3 train.py -cn=forecasting_etth1_baseline trainer.require_cuda=true
+```
+
+Foundation-model check configs (train + test inference):
+
+```bash
+# Classification (MOMENT adapter)
+python3 train.py -cn=fm_ucr_forda_train trainer.require_cuda=true
+python3 inference.py -cn=fm_ucr_forda_inference inferencer.require_cuda=true
+
+# Forecasting (Chronos adapter, literature horizons)
+python3 train.py -cn=fm_etth1_h96_train trainer.require_cuda=true
+python3 inference.py -cn=fm_etth1_h96_inference inferencer.require_cuda=true
+```
+
+Switch provider/model via overrides:
+
+```bash
+# TimesFM
+python3 train.py -cn=fm_etth1_h96_train \
+  model.provider=timesfm \
+  model.model_id=google/timesfm-2.0-500m-pytorch
+
+# Moirai
+python3 train.py -cn=fm_etth1_h96_train \
+  model.provider=moirai \
+  model.model_id=SalesforceAIResearch/moirai-1.0-R-base
+```
+
+Full fine-tuning and LoRA (forecasting, MOMENT backbone):
+
+```bash
+# full fine-tune
+python3 train.py -cn=fm_etth1_h96_moment_full_train trainer.require_cuda=true
+python3 inference.py -cn=fm_etth1_h96_moment_full_inference inferencer.require_cuda=true
+
+# LoRA fine-tune
+python3 train.py -cn=fm_etth1_h96_moment_lora_train trainer.require_cuda=true
+python3 inference.py -cn=fm_etth1_h96_moment_lora_inference inferencer.require_cuda=true
+```
+
+Notes:
+- Install MOMENT package first: `pip install momentfm`.
+- `model.require_provider_model=true` makes runs fail fast if the backbone is not loaded.
+- For providers exposed as inference-only pipelines, use `finetune_mode=none`.
+
 Inference + bootstrap CI evaluation:
 
 ```bash
