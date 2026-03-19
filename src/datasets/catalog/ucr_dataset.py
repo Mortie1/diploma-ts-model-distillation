@@ -6,6 +6,7 @@ import numpy as np
 import torch
 
 from src.datasets.base_dataset import BaseDataset
+from src.datasets.catalog.download import maybe_download_ucr
 
 
 class UCRDataset(BaseDataset):
@@ -22,8 +23,22 @@ class UCRDataset(BaseDataset):
     ):
         root_path = Path(root)
         split_name = "TRAIN" if split.lower() == "train" else "TEST"
-        file_path = root_path / dataset_name / f"{dataset_name}_{split_name}.tsv"
-        arr = np.loadtxt(file_path, delimiter="\t")
+        candidates = [
+            root_path / dataset_name / f"{dataset_name}_{split_name}.tsv",
+            root_path / dataset_name / f"{dataset_name}_{split_name}.txt",
+            root_path / f"{dataset_name}_{split_name}.tsv",
+            root_path / f"{dataset_name}_{split_name}.txt",
+        ]
+        file_path = next((p for p in candidates if p.exists()), None)
+        if file_path is None:
+            maybe_download_ucr(dataset_name=dataset_name, root=root_path)
+            file_path = next((p for p in candidates if p.exists()), None)
+            if file_path is None:
+                checked = ", ".join(str(p) for p in candidates)
+                raise FileNotFoundError(f"Could not find UCR split file. Checked: {checked}")
+
+        # Many UCR files are tab-separated; some exports are plain whitespace text.
+        arr = np.loadtxt(file_path, delimiter=None)
 
         labels = arr[:, 0].astype(np.int64)
         unique_labels = sorted(np.unique(labels).tolist())

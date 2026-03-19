@@ -1,0 +1,42 @@
+defaults:
+  - /task: forecasting
+  - /model: student_forecasting
+  - /writer: local
+  - /metrics: forecasting
+  - /datasets: ett_etth1
+  - /dataloader: smoke
+  - /transforms: plain
+  - /loss_function: forecasting
+  - /distillation: hybrid
+  - _self_
+
+model:
+  in_channels: 7
+  horizon: 24
+
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 3e-4
+
+lr_scheduler:
+  _target_: torch.optim.lr_scheduler.StepLR
+  gamma: 0.9
+  step_size: 200
+
+trainer:
+  log_step: 50
+  n_epochs: 10
+  epoch_len: null
+  device_tensors: ${task.device_tensors}
+  resume_from: null
+  device: auto
+  require_cuda: false
+  override: True
+  monitor: "min test_MAE"
+  save_period: 1
+  early_stop: ${trainer.n_epochs}
+  save_dir: "saved"
+  seed: 42
+
+writer:
+  run_name: "forecasting_etth1_baseline"

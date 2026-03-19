@@ -1,0 +1,21 @@
+train:
+  _target_: src.datasets.UCRDataset
+  root: "data/raw/ucr"
+  dataset_name: "ECG200"
+  split: "train"
+  normalize: true
+  instance_transforms: ${transforms.instance_transforms.train}
+val:
+  _target_: src.datasets.UCRDataset
+  root: "data/raw/ucr"
+  dataset_name: "ECG200"
+  split: "test"
+  normalize: true
+  instance_transforms: ${transforms.instance_transforms.inference}
+test:
+  _target_: src.datasets.UCRDataset
+  root: "data/raw/ucr"
+  dataset_name: "ECG200"
+  split: "test"
+  normalize: true
+  instance_transforms: ${transforms.instance_transforms.inference}

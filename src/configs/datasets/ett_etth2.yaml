@@ -1,0 +1,33 @@
+train:
+  _target_: src.datasets.ForecastCSVWindowDataset
+  csv_path: "data/raw/ett/ETTh2.csv"
+  value_columns: ["HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT"]
+  context_length: 96
+  horizon: 24
+  split: "train"
+  train_ratio: 0.7
+  val_ratio: 0.1
+  normalize_with_train_stats: true
+  instance_transforms: ${transforms.instance_transforms.train}
+val:
+  _target_: src.datasets.ForecastCSVWindowDataset
+  csv_path: "data/raw/ett/ETTh2.csv"
+  value_columns: ["HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT"]
+  context_length: 96
+  horizon: 24
+  split: "val"
+  train_ratio: 0.7
+  val_ratio: 0.1
+  normalize_with_train_stats: true
+  instance_transforms: ${transforms.instance_transforms.inference}
+test:
+  _target_: src.datasets.ForecastCSVWindowDataset
+  csv_path: "data/raw/ett/ETTh2.csv"
+  value_columns: ["HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT"]
+  context_length: 96
+  horizon: 24
+  split: "test"
+  train_ratio: 0.7
+  val_ratio: 0.1
+  normalize_with_train_stats: true
+  instance_transforms: ${transforms.instance_transforms.inference}

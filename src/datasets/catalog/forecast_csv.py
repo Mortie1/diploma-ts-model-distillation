@@ -7,6 +7,7 @@ import pandas as pd
 import torch
 
 from src.datasets.base_dataset import BaseDataset
+from src.datasets.catalog.download import maybe_download_ett
 
 
 class ForecastCSVWindowDataset(BaseDataset):
@@ -15,7 +16,7 @@ class ForecastCSVWindowDataset(BaseDataset):
     def __init__(
         self,
         csv_path: str,
-        value_columns: list[str],
+        value_columns: list[str] | None,
         context_length: int,
         horizon: int,
         split: str,
@@ -28,7 +29,19 @@ class ForecastCSVWindowDataset(BaseDataset):
         self.context_length = context_length
         self.horizon = horizon
 
-        df = pd.read_csv(Path(csv_path))
+        csv_file = Path(csv_path)
+        if not csv_file.exists():
+            maybe_download_ett(csv_file)
+        df = pd.read_csv(csv_file)
+        if value_columns is None:
+            ignore = {"date", "datetime", "timestamp", "time"}
+            numeric_columns = [c for c in df.columns if pd.api.types.is_numeric_dtype(df[c])]
+            value_columns = [c for c in numeric_columns if c.lower() not in ignore]
+        if not value_columns:
+            raise ValueError(
+                "value_columns resolved to an empty list. Set `value_columns` explicitly."
+            )
+
         values = df[value_columns].to_numpy(dtype=np.float32)
 
         n = len(values)
