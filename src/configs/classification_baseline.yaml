@@ -26,6 +26,7 @@ trainer:
   device_tensors: ${task.device_tensors}
   resume_from: null
   device: auto
+  require_cuda: false
   override: True
   monitor: "max test_Accuracy"
   save_period: 1
