@@ -19,6 +19,9 @@ class CometMLWriter:
         workspace=None,
         run_id=None,
         run_name=None,
+        display_name=None,
+        description=None,
+        tags=None,
         mode="online",
         **kwargs,
     ):
@@ -44,6 +47,7 @@ class CometMLWriter:
                 comet_ml.login()
 
             self.run_id = run_id
+            desired_name = display_name or run_name
 
             resume = False
             if project_config["trainer"].get("resume_from") is not None:
@@ -56,6 +60,8 @@ class CometMLWriter:
                     exp_class = comet_ml.ExistingExperiment
 
                 self.exp = exp_class(experiment_key=self.run_id)
+                if desired_name:
+                    self.exp.set_name(desired_name)
             else:
                 if mode == "offline":
                     exp_class = comet_ml.OfflineExperiment
@@ -71,8 +77,16 @@ class CometMLWriter:
                     auto_metric_logging=kwargs.get("auto_metric_logging", False),
                     auto_param_logging=kwargs.get("auto_param_logging", False),
                 )
-                self.exp.set_name(run_name)
+                if desired_name:
+                    self.exp.set_name(desired_name)
                 self.exp.log_parameters(parameters=project_config)
+                if description:
+                    self.exp.log_other("description", description)
+                if tags:
+                    for tag in tags:
+                        self.exp.add_tag(str(tag))
+            if desired_name:
+                logger.info(f"Comet run name: {desired_name}")
 
             self.comel_ml = comet_ml
 

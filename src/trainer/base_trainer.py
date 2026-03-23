@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from contextlib import nullcontext
 
 import torch
 from numpy import inf
@@ -74,6 +75,26 @@ class BaseTrainer:
         self.batch_transforms = batch_transforms
         self.distillation = distillation
 
+        # Mixed precision setup (CUDA only).
+        self.amp_enabled = bool(self.cfg_trainer.get("amp_enabled", False)) and (
+            torch.cuda.is_available() and "cuda" in str(self.device)
+        )
+        amp_dtype_name = str(self.cfg_trainer.get("amp_dtype", "bf16")).lower()
+        if amp_dtype_name in {"bf16", "bfloat16"}:
+            self.amp_dtype = torch.bfloat16
+        elif amp_dtype_name in {"fp16", "float16", "half"}:
+            self.amp_dtype = torch.float16
+        else:
+            self.logger.warning(
+                "Unknown trainer.amp_dtype=%s. Falling back to bf16.", amp_dtype_name
+            )
+            self.amp_dtype = torch.bfloat16
+        self.use_grad_scaler = self.amp_enabled and self.amp_dtype == torch.float16
+        if hasattr(torch, "amp") and hasattr(torch.amp, "GradScaler"):
+            self.scaler = torch.amp.GradScaler("cuda", enabled=self.use_grad_scaler)
+        else:
+            self.scaler = torch.cuda.amp.GradScaler(enabled=self.use_grad_scaler)
+
         # define dataloaders
         self.train_dataloader = dataloaders["train"]
         if epoch_len is None:
@@ -87,6 +108,13 @@ class BaseTrainer:
         self.evaluation_dataloaders = {
             k: v for k, v in dataloaders.items() if k != "train"
         }
+
+        if self.amp_enabled:
+            self.logger.info(
+                "AMP enabled: dtype=%s, grad_scaler=%s",
+                "bf16" if self.amp_dtype == torch.bfloat16 else "fp16",
+                self.use_grad_scaler,
+            )
 
         # define epochs
         self._last_epoch = 0  # required for saving on interruption
@@ -384,6 +412,11 @@ class BaseTrainer:
             clip_grad_norm_(
                 self.model.parameters(), self.config["trainer"]["max_grad_norm"]
             )
+
+    def _autocast_context(self):
+        if not self.amp_enabled:
+            return nullcontext()
+        return torch.autocast(device_type="cuda", dtype=self.amp_dtype)
 
     @torch.no_grad()
     def _get_grad_norm(self, norm_type=2):
