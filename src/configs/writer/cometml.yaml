@@ -1,7 +1,13 @@
 _target_: src.logger.CometMLWriter
 project_name: "diploma-ts-model-distillation"
 workspace: null
-run_name: "diploma-ts-model-distillation"
+run_name: "run"
+display_name: null
+description: null
+tags: []
+auto_name: true
+short_name: null
+main_change: null
 mode: "online"
 loss_names: ["loss", "task_loss"] # which losses to log (useful for multi-loss tasks, s.a. GANs)
 log_checkpoints: False # set to True if you want to log save_dir with checkpoints to W&B

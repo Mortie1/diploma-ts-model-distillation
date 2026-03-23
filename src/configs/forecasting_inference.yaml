@@ -1,5 +1,4 @@
 defaults:
-  - /task: forecasting
   - /model: student_forecasting
   - /metrics: forecasting
   - /datasets: synthetic_forecasting
@@ -8,7 +7,7 @@ defaults:
   - _self_
 
 inferencer:
-  device_tensors: ${task.device_tensors}
+  device_tensors: ["context", "target"]
   device: auto
   require_cuda: false
   save_path: "forecasting_predictions"

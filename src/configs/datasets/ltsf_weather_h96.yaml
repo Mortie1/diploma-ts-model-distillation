@@ -1,0 +1,33 @@
+train:
+  _target_: src.datasets.ForecastCSVWindowDataset
+  csv_path: "data/raw/ltsf/weather.csv"
+  value_columns: null
+  context_length: 96
+  horizon: 96
+  split: "train"
+  train_ratio: 0.7
+  val_ratio: 0.1
+  normalize_with_train_stats: true
+  instance_transforms: ${transforms.instance_transforms.train}
+val:
+  _target_: src.datasets.ForecastCSVWindowDataset
+  csv_path: "data/raw/ltsf/weather.csv"
+  value_columns: null
+  context_length: 96
+  horizon: 96
+  split: "val"
+  train_ratio: 0.7
+  val_ratio: 0.1
+  normalize_with_train_stats: true
+  instance_transforms: ${transforms.instance_transforms.inference}
+test:
+  _target_: src.datasets.ForecastCSVWindowDataset
+  csv_path: "data/raw/ltsf/weather.csv"
+  value_columns: null
+  context_length: 96
+  horizon: 96
+  split: "test"
+  train_ratio: 0.7
+  val_ratio: 0.1
+  normalize_with_train_stats: true
+  instance_transforms: ${transforms.instance_transforms.inference}

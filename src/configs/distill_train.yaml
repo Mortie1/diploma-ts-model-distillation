@@ -2,16 +2,16 @@ defaults:
   - /model: student_forecasting
   - /writer: cometml
   - /metrics: forecasting
-  - /datasets: ett_etth1
+  - /datasets: ett_etth1_h96
   - /dataloader: smoke
   - /transforms: plain
-  - /loss_function: forecasting
+  - /loss_function: forecasting_distill
   - /distillation: hybrid
   - _self_
 
 model:
   in_channels: 7
-  horizon: 24
+  horizon: 96
 
 optimizer:
   _target_: torch.optim.Adam
@@ -20,12 +20,14 @@ optimizer:
 lr_scheduler:
   _target_: torch.optim.lr_scheduler.StepLR
   gamma: 0.9
-  step_size: 200
+  step_size: ${trainer.epoch_len}
 
 trainer:
-  log_step: 50
+  log_step: 1
   n_epochs: 10
   epoch_len: null
+  amp_enabled: true
+  amp_dtype: "bf16"
   compile_enabled: false
   compile_backend: null
   compile_mode: null
@@ -36,7 +38,7 @@ trainer:
   resume_from: null
   device: auto
   require_cuda: false
-  override: True
+  override: true
   monitor: "min test_MAE"
   save_period: 1
   early_stop: ${trainer.n_epochs}
@@ -44,9 +46,21 @@ trainer:
   seed: 42
 
 writer:
-  run_name: "forecasting_etth1_baseline"
+  run_name: "distill_train"
   auto_name: true
-  short_name: "forecasting-student-etth1"
+  short_name: "forecasting-distill"
   main_change: "base"
-  description: "Base ETTh1 student-only forecasting baseline."
-  tags: ["forecasting", "baseline", "etth1", "train"]
+  description: "Base distillation run for forecasting student."
+  tags: ["forecasting", "distill", "train"]
+
+distillation:
+  enabled: true
+  input_key: context
+  student_hidden_dim: 128
+  student_pred_dim: 672
+  teacher_backend: mock
+  teacher_hidden_dim: 256
+
+dataloader:
+  batch_size: 64
+  num_workers: 4

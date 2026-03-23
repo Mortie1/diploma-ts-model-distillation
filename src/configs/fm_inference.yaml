@@ -1,5 +1,4 @@
 defaults:
-  - /task: forecasting
   - /model: tsfm_forecast_adapter
   - /metrics: forecasting
   - /datasets: ett_etth1_h96
@@ -9,14 +8,20 @@ defaults:
 
 model:
   provider: "chronos"
-  model_id: "amazon/chronos-bolt-base"
+  model_id: "amazon/chronos-t5-small"
   in_channels: 7
   horizon: 96
+  require_provider_model: false
+  finetune_mode: "none"
 
 inferencer:
-  device_tensors: ${task.device_tensors}
+  device_tensors: ["context", "target"]
   device: auto
   require_cuda: false
-  save_path: "fm_etth1_h96_predictions"
+  save_path: "fm_predictions"
   seed: 42
-  from_pretrained: "saved/fm_etth1_h96_train/model_best.pth"
+  from_pretrained: "saved/fm_train/model_best.pth"
+
+dataloader:
+  batch_size: 64
+  num_workers: 4

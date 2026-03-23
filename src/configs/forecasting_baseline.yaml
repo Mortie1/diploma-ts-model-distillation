@@ -1,7 +1,6 @@
 defaults:
-  - /task: forecasting
   - /model: student_forecasting
-  - /writer: local
+  - /writer: cometml
   - /metrics: forecasting
   - /datasets: synthetic_forecasting
   - /dataloader: smoke
@@ -23,7 +22,13 @@ trainer:
   log_step: 10
   n_epochs: 5
   epoch_len: 20
-  device_tensors: ${task.device_tensors}
+  compile_enabled: false
+  compile_backend: null
+  compile_mode: null
+  compile_dynamic: null
+  compile_fullgraph: null
+  compile_distillation: false
+  device_tensors: ["context", "target"]
   resume_from: null
   device: auto
   require_cuda: false
@@ -36,3 +41,8 @@ trainer:
 
 writer:
   run_name: "forecasting_baseline"
+  auto_name: true
+  short_name: "forecasting-student"
+  main_change: "base"
+  description: "Base student-only forecasting baseline."
+  tags: ["forecasting", "baseline", "train"]

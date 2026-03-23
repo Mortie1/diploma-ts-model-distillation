@@ -1,15 +1,23 @@
 defaults:
   - /model: student_forecasting
   - /metrics: forecasting
-  - /datasets: synthetic_forecasting
+  - /datasets: ett_etth1_h96
   - /dataloader: smoke
   - /transforms: plain
   - _self_
+
+model:
+  in_channels: 7
+  horizon: 96
 
 inferencer:
   device_tensors: ["context", "target"]
   device: auto
   require_cuda: false
-  save_path: "forecasting_predictions"
+  save_path: "distill_predictions"
   seed: 42
-  from_pretrained: "saved/local/model_best.pth"
+  from_pretrained: "saved/distill_train/model_best.pth"
+
+dataloader:
+  batch_size: 64
+  num_workers: 4

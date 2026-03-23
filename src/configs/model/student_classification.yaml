@@ -1,7 +1,0 @@
-_target_: src.model.StudentClassifier
-in_channels: 1
-n_classes: 4
-hidden_dim: 128
-n_heads: 4
-n_layers: 2
-dropout: 0.1

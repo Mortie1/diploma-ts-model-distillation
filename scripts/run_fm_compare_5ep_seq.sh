@@ -34,23 +34,23 @@ echo -e "run\tprovider\tmodel_id\tfinetune_mode\tbatch_size\tstatus\tbest_test_M
 # Head-only regime: keep finetune_mode=none for fair backbone-as-teacher comparison.
 runs=(
   # Chronos family
-  "chronos2_head|chronos|amazon/chronos-2|none|128|model.require_provider_model=true"
-  "chronos_t5_base_head|chronos|amazon/chronos-t5-base|none|128|model.require_provider_model=true"
-  "chronos_t5_small_head|chronos|amazon/chronos-t5-small|none|128|model.require_provider_model=true"
-  "chronos_t5_mini_head|chronos|amazon/chronos-t5-mini|none|128|model.require_provider_model=true"
-  "chronos_t5_tiny_head|chronos|amazon/chronos-t5-tiny|none|128|model.require_provider_model=true"
-  "chronos_bolt_base_head|chronos|amazon/chronos-bolt-base|none|128|model.require_provider_model=true"
-  "chronos_bolt_small_head|chronos|amazon/chronos-bolt-small|none|128|model.require_provider_model=true"
-  "chronos_bolt_mini_head|chronos|amazon/chronos-bolt-mini|none|128|model.require_provider_model=true"
-  "chronos_bolt_tiny_head|chronos|amazon/chronos-bolt-tiny|none|128|model.require_provider_model=true"
+  "chronos2_head|chronos|amazon/chronos-2|none|256|model.require_provider_model=true"
+  "chronos_t5_base_head|chronos|amazon/chronos-t5-base|none|256|model.require_provider_model=true"
+  "chronos_t5_small_head|chronos|amazon/chronos-t5-small|none|256|model.require_provider_model=true"
+  "chronos_t5_mini_head|chronos|amazon/chronos-t5-mini|none|256|model.require_provider_model=true"
+  "chronos_t5_tiny_head|chronos|amazon/chronos-t5-tiny|none|256|model.require_provider_model=true"
+  "chronos_bolt_base_head|chronos|amazon/chronos-bolt-base|none|256|model.require_provider_model=true"
+  "chronos_bolt_small_head|chronos|amazon/chronos-bolt-small|none|256|model.require_provider_model=true"
+  "chronos_bolt_mini_head|chronos|amazon/chronos-bolt-mini|none|256|model.require_provider_model=true"
+  "chronos_bolt_tiny_head|chronos|amazon/chronos-bolt-tiny|none|256|model.require_provider_model=true"
 
   # TimesFM family (HF path)
-  "timesfm20_500m_hf_head|timesfm_hf|google/timesfm-2.0-500m-pytorch|none|128|model.require_provider_model=true"
-  "timesfm25_200m_hf_head|timesfm_hf|google/timesfm-2.5-200m-pytorch|none|128|model.require_provider_model=true"
+  "timesfm20_500m_hf_head|timesfm_hf|google/timesfm-2.0-500m-pytorch|none|256|model.require_provider_model=true"
+  "timesfm25_200m_hf_head|timesfm_hf|google/timesfm-2.5-200m-pytorch|none|256|model.require_provider_model=true"
 
   # TimesFM family (native API path)
-  "timesfm20_500m_head|timesfm|google/timesfm-2.0-500m-pytorch|none|128|model.require_provider_model=true"
-  "timesfm10_200m_head|timesfm|google/timesfm-1.0-200m|none|128|model.require_provider_model=true"
+  "timesfm20_500m_head|timesfm|google/timesfm-2.0-500m-pytorch|none|256|model.require_provider_model=true"
+  "timesfm10_200m_head|timesfm|google/timesfm-1.0-200m|none|256|model.require_provider_model=true"
 )
 
 extract_metrics() {

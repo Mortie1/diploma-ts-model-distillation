@@ -1,6 +1,0 @@
-train:
-  - _target_: src.metrics.ClassificationAccuracy
-    name: "TrainAccuracy"
-inference:
-  - _target_: src.metrics.ClassificationAccuracy
-    name: "Accuracy"

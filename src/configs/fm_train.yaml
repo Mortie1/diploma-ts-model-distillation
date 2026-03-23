@@ -1,21 +1,24 @@
 defaults:
-  - /model: student_forecasting
+  - /model: tsfm_forecast_adapter
   - /writer: cometml
   - /metrics: forecasting
-  - /datasets: ett_etth1
+  - /datasets: ett_etth1_h96
   - /dataloader: smoke
   - /transforms: plain
   - /loss_function: forecasting
-  - /distillation: hybrid
   - _self_
 
 model:
+  provider: "chronos"
+  model_id: "amazon/chronos-2"
   in_channels: 7
-  horizon: 24
+  horizon: 96
+  require_provider_model: false
+  finetune_mode: "none"
 
 optimizer:
   _target_: torch.optim.Adam
-  lr: 3e-4
+  lr: 1e-3
 
 lr_scheduler:
   _target_: torch.optim.lr_scheduler.StepLR
@@ -23,9 +26,11 @@ lr_scheduler:
   step_size: 200
 
 trainer:
-  log_step: 50
+  log_step: 1
   n_epochs: 10
   epoch_len: null
+  amp_enabled: true
+  amp_dtype: "bf16"
   compile_enabled: false
   compile_backend: null
   compile_mode: null
@@ -36,7 +41,7 @@ trainer:
   resume_from: null
   device: auto
   require_cuda: false
-  override: True
+  override: true
   monitor: "min test_MAE"
   save_period: 1
   early_stop: ${trainer.n_epochs}
@@ -44,9 +49,13 @@ trainer:
   seed: 42
 
 writer:
-  run_name: "forecasting_etth1_baseline"
+  run_name: "fm_train"
   auto_name: true
-  short_name: "forecasting-student-etth1"
+  short_name: "forecasting-fm"
   main_change: "base"
-  description: "Base ETTh1 student-only forecasting baseline."
-  tags: ["forecasting", "baseline", "etth1", "train"]
+  description: "Base FM forecasting run."
+  tags: ["forecasting", "fm", "train"]
+
+dataloader:
+  batch_size: 64
+  num_workers: 4

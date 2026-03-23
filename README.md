@@ -126,108 +126,146 @@ python3 inference.py HYDRA_CONFIG_ARGUMENTS
 
 ### Experiment Presets (Diploma)
 
-The repository now includes two experiment tracks:
-
-- `classification`: TS classification baselines and cross-modal distillation.
-- `forecasting`: TS forecasting baselines and cross-modal distillation.
+The repository now includes a forecasting-focused track with cross-modal distillation.
 
 Run presets:
 
 ```bash
-# Classification baseline
-python3 train.py -cn=classification_baseline
-
-# Classification + distillation (mock teacher by default)
-python3 train.py -cn=classification_distill
-
 # Forecasting baseline
 python3 train.py -cn=forecasting_baseline
 
-# Forecasting + distillation (mock teacher by default)
-python3 train.py -cn=forecasting_distill
+# Distillation train/inference base
+python3 train.py -cn=distill_train
+python3 inference.py -cn=distill_inference
 ```
 
 To force GPU usage (fail fast if CUDA is not usable):
 
 ```bash
-python3 train.py -cn=classification_baseline trainer.require_cuda=true
-python3 inference.py -cn=classification_inference inferencer.require_cuda=true
+python3 train.py -cn=fm_train trainer.require_cuda=true
+python3 inference.py -cn=fm_inference inferencer.require_cuda=true
 ```
 
 ### Popular TSFM Benchmark Datasets
 
-The repo now includes configs for commonly used TSFM evaluation datasets:
+The repo now includes configs for commonly used TSFM forecasting datasets:
 
-- Classification (UCR): `ECG200`, `FordA`, `Wafer`
 - Forecasting (ETT): `ETTh1`, `ETTh2`, `ETTm1`, `ETTm2`
+- Forecasting (LTSF): `Electricity`, `Traffic`, `Weather`
 
 Datasets are downloaded automatically on first use if missing locally.
-By default they are stored under `data/raw/ucr` and `data/raw/ett`.
+By default they are stored under `data/raw/ett` and `data/raw/ltsf`.
+
+### Motivation: Why These Models and Datasets
+
+For the diploma track, the main goal is cross-modal distillation for time
+series (for example, audio-teacher -> TS student). The forecasting FM setup is
+used as a controlled baseline stage before distillation.
+
+- Baseline model families:
+  - `Chronos` (`chronos-t5-small`, `chronos-2`) to compare previous vs newer
+    generations within one line.
+  - `TimesFM` (`2.0`, `2.5`) to compare another strong foundation-model line
+    and quantify version improvements.
+- Adaptation regimes:
+  - `full` fine-tuning where feasible.
+  - `LoRA` for larger checkpoints to keep memory usage realistic and compare
+    quality/cost trade-offs.
+- Forecasting datasets:
+  - `Electricity`, `Traffic`, `Weather` (LTSF benchmarks) to cover different
+    dynamics (seasonality, noisy demand/traffic, smoother physical signals).
+  - Using several datasets reduces the chance of dataset-specific conclusions.
+
+Research intent:
+
+1. Establish strong TSFM baselines and identify where they underperform
+   (datasets/domains/signal regimes).
+2. Distill knowledge from non-TS teachers (primarily audio foundation models)
+   into TS students and compare against TSFM-only baselines.
+3. Measure whether cross-modal distillation is a better quality/efficiency
+   trade-off than using larger TS foundation models alone.
+
+Extended report-style motivation is available in
+`docs/report_motivation.md`. Canonical research goal is tracked in
+`docs/research_goal.md`.
 
 Run examples:
 
 ```bash
-# UCR FordA baseline
-python3 train.py -cn=classification_ucr_forda_baseline trainer.require_cuda=true
-
 # ETT ETTh1 baseline
 python3 train.py -cn=forecasting_etth1_baseline trainer.require_cuda=true
 ```
 
-Foundation-model check configs (train + test inference):
+Foundation-model base configs (train + test inference):
 
 ```bash
-# Classification (MOMENT adapter)
-python3 train.py -cn=fm_ucr_forda_train trainer.require_cuda=true
-python3 inference.py -cn=fm_ucr_forda_inference inferencer.require_cuda=true
-
-# Forecasting (Chronos adapter, literature horizons)
-python3 train.py -cn=fm_etth1_h96_train trainer.require_cuda=true
-python3 inference.py -cn=fm_etth1_h96_inference inferencer.require_cuda=true
+# Forecasting FM train/inference base
+python3 train.py -cn=fm_train trainer.require_cuda=true
+python3 inference.py -cn=fm_inference inferencer.require_cuda=true
 ```
 
-Switch provider/model via overrides:
+Switch provider/model/dataset via overrides:
 
 ```bash
-# TimesFM
-python3 train.py -cn=fm_etth1_h96_train \
+# TimesFM-2.5 on Electricity
+python3 train.py -cn=fm_train \
+  datasets=ltsf_electricity_h96 \
+  model.provider=timesfm_hf \
+  model.model_id=google/timesfm-2.5-200m-pytorch \
+  model.in_channels=321 \
+  model.horizon=96
+
+# TimesFM-2.0 API path
+python3 train.py -cn=fm_train \
+  datasets=ltsf_electricity_h96 \
   model.provider=timesfm \
-  model.model_id=google/timesfm-2.0-500m-pytorch
+  model.model_id=google/timesfm-2.0-500m-pytorch \
+  model.in_channels=321 \
+  model.horizon=96
 
-# Moirai
-python3 train.py -cn=fm_etth1_h96_train \
-  model.provider=moirai \
-  model.model_id=SalesforceAIResearch/moirai-1.0-R-base
+# Chronos-2
+python3 train.py -cn=fm_train \
+  datasets=ltsf_electricity_h96 \
+  model.provider=chronos \
+  model.model_id=amazon/chronos-2 \
+  model.in_channels=321 \
+  model.horizon=96
 ```
 
-Full fine-tuning and LoRA (forecasting, MOMENT backbone):
+Full fine-tuning and LoRA (forecasting FM):
 
 ```bash
-# full fine-tune
-python3 train.py -cn=fm_etth1_h96_moment_full_train trainer.require_cuda=true
-python3 inference.py -cn=fm_etth1_h96_moment_full_inference inferencer.require_cuda=true
+# full fine-tune (example)
+python3 train.py -cn=fm_train \
+  model.provider=timesfm_hf \
+  model.model_id=google/timesfm-2.5-200m-pytorch \
+  model.finetune_mode=full
 
-# LoRA fine-tune
-python3 train.py -cn=fm_etth1_h96_moment_lora_train trainer.require_cuda=true
-python3 inference.py -cn=fm_etth1_h96_moment_lora_inference inferencer.require_cuda=true
+# LoRA fine-tune (example)
+python3 train.py -cn=fm_train \
+  model.provider=timesfm_hf \
+  model.model_id=google/timesfm-2.5-500m-pytorch \
+  model.finetune_mode=lora \
+  model.lora_rank=8 \
+  model.lora_alpha=16 \
+  model.lora_target_patterns='[q_proj,k_proj,v_proj,o_proj,gate_proj,down_proj]'
 ```
 
 Notes:
-- Install MOMENT package first: `pip install momentfm`.
 - `model.require_provider_model=true` makes runs fail fast if the backbone is not loaded.
 - For providers exposed as inference-only pipelines, use `finetune_mode=none`.
 
 Inference + bootstrap CI evaluation:
 
 ```bash
-python3 inference.py -cn=classification_inference
-python3 src/benchmarks/run_eval.py --task classification --pred-dir data/saved/classification_predictions
+python3 inference.py -cn=fm_inference
+python3 src/benchmarks/run_eval.py --task forecasting --pred-dir data/saved/fm_predictions
 ```
 
 For audio foundation teachers via HF, set:
 
 ```bash
-python3 train.py -cn=classification_distill \
+python3 train.py -cn=distill_train \
   distillation.teacher_backend=hf \
   distillation.teacher_model_name=facebook/hubert-base-ls960
 ```
