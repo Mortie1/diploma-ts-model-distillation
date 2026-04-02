@@ -3,7 +3,7 @@ import warnings
 import hydra
 import torch
 from hydra.utils import instantiate
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, open_dict
 
 from src.datasets.data_utils import get_dataloaders
 from src.trainer import Trainer
@@ -75,6 +75,11 @@ def main(config):
     # setup data_loader instances
     # batch_transforms should be put on device
     dataloaders, batch_transforms = get_dataloaders(config, device)
+
+    # Backward compatibility: old scripts may still pass `model.provider=...`.
+    if "provider" in config.model:
+        with open_dict(config.model):
+            config.model.pop("provider")
 
     # build model architecture, then print to console
     model = instantiate(config.model).to(device)
