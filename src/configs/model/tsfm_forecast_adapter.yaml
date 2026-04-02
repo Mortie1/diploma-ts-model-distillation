@@ -1,8 +1,8 @@
-_target_: src.model.TSFMForecastAdapter
-provider: "placeholder"
-model_id: "chronos"
-horizon: 24
-in_channels: 1
+_target_: src.model.ChronosForecastAdapter
+provider: null
+model_id: "amazon/chronos-2"
+horizon: 96
+in_channels: 7
 require_provider_model: false
 finetune_mode: "none"
 gradient_checkpointing: false

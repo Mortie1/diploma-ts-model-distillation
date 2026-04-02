@@ -1,4 +1,7 @@
-from src.model.adapters.classification.base import PlaceholderClassificationAdapter
+from src.model.adapters.classification.base import (
+    BaseClassificationAdapter,
+    PlaceholderClassificationAdapter,
+)
 from src.model.adapters.classification.chronos import ChronosClassificationAdapter
 from src.model.adapters.classification.chronos2 import Chronos2ClassificationAdapter
 from src.model.adapters.classification.moment import MomentClassificationAdapter
@@ -7,18 +10,9 @@ from src.model.adapters.classification.timesfm_hf import TimesFMHFClassification
 from src.model.adapters.classification.tirex import TiRexClassificationAdapter
 from src.model.adapters.classification.tspulse import TSPulseClassificationAdapter
 from src.model.adapters.classification.units import UniTSClassificationAdapter
-from src.model.adapters.forecasting.base import PlaceholderForecastAdapter
-from src.model.adapters.forecasting.chronos import ChronosForecastAdapter
-from src.model.adapters.forecasting.moment import MomentForecastAdapter
-from src.model.adapters.forecasting.timesfm import TimesFMForecastAdapter
-from src.model.adapters.forecasting.timesfm_hf import TimesFMHFForecastAdapter
 
 __all__ = [
-    "PlaceholderForecastAdapter",
-    "ChronosForecastAdapter",
-    "TimesFMForecastAdapter",
-    "TimesFMHFForecastAdapter",
-    "MomentForecastAdapter",
+    "BaseClassificationAdapter",
     "PlaceholderClassificationAdapter",
     "ChronosClassificationAdapter",
     "Chronos2ClassificationAdapter",
