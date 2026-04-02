@@ -259,7 +259,6 @@ Inference + bootstrap CI evaluation:
 
 ```bash
 python3 inference.py -cn=fm_inference
-python3 src/benchmarks/run_eval.py --task forecasting --pred-dir data/saved/fm_predictions
 ```
 
 For audio foundation teachers via HF, set:
