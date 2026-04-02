@@ -1,0 +1,26 @@
+defaults:
+  - /model: tsfm_forecast_adapter
+  - /metrics: forecasting
+  - /datasets: ett_etth1_h96
+  - /dataloader: smoke
+  - /transforms: plain
+  - _self_
+
+model:
+  model_id: "amazon/chronos-t5-small"
+  in_channels: 7
+  horizon: 96
+  require_provider_model: false
+  finetune_mode: "none"
+
+inferencer:
+  device_tensors: ["context", "target"]
+  device: auto
+  require_cuda: false
+  save_path: "fm_forecasting_predictions"
+  seed: 42
+  from_pretrained: "saved/fm_forecasting_train/model_best.pth"
+
+dataloader:
+  batch_size: 64
+  num_workers: 4

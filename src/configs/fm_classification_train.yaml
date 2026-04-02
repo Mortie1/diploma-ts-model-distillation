@@ -1,0 +1,53 @@
+defaults:
+  - /model: moment_classification_adapter
+  - /writer: cometml
+  - /metrics: classification
+  - /datasets: ucr_gunpoint
+  - /dataloader: smoke
+  - /transforms: plain
+  - /loss_function: classification
+  - _self_
+
+optimizer:
+  _target_: torch.optim.Adam
+  lr: 1e-3
+
+lr_scheduler:
+  _target_: torch.optim.lr_scheduler.StepLR
+  gamma: 0.9
+  step_size: 200
+
+trainer:
+  log_step: 1
+  n_epochs: 10
+  epoch_len: null
+  amp_enabled: true
+  amp_dtype: "bf16"
+  compile_enabled: false
+  compile_backend: null
+  compile_mode: null
+  compile_dynamic: null
+  compile_fullgraph: null
+  compile_distillation: false
+  device_tensors: ["x", "y"]
+  resume_from: null
+  device: auto
+  require_cuda: false
+  override: true
+  monitor: "max test_Accuracy"
+  save_period: 1
+  early_stop: ${trainer.n_epochs}
+  save_dir: "saved"
+  seed: 42
+
+writer:
+  run_name: "fm_classification_train"
+  auto_name: true
+  short_name: "classification-fm"
+  main_change: "base"
+  description: "Base FM classification run."
+  tags: ["classification", "fm", "train"]
+
+dataloader:
+  batch_size: 64
+  num_workers: 2

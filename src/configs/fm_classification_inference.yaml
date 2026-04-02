@@ -1,0 +1,19 @@
+defaults:
+  - /model: moment_classification_adapter
+  - /metrics: classification
+  - /datasets: ucr_gunpoint
+  - /dataloader: smoke
+  - /transforms: plain
+  - _self_
+
+inferencer:
+  device_tensors: ["x", "y"]
+  device: auto
+  require_cuda: false
+  save_path: "fm_classification_predictions"
+  seed: 42
+  from_pretrained: "saved/fm_classification_train/model_best.pth"
+
+dataloader:
+  batch_size: 64
+  num_workers: 2
