@@ -1,5 +1,5 @@
 train:
-  _target_: src.datasets.ForecastCSVWindowDataset
+  _target_: src.datasets.ETTm2ForecastDataset
   csv_path: "data/raw/ett/ETTm2.csv"
   value_columns: ["HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT"]
   context_length: 96
@@ -10,7 +10,7 @@ train:
   normalize_with_train_stats: true
   instance_transforms: ${transforms.instance_transforms.train}
 val:
-  _target_: src.datasets.ForecastCSVWindowDataset
+  _target_: src.datasets.ETTm2ForecastDataset
   csv_path: "data/raw/ett/ETTm2.csv"
   value_columns: ["HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT"]
   context_length: 96
@@ -21,7 +21,7 @@ val:
   normalize_with_train_stats: true
   instance_transforms: ${transforms.instance_transforms.inference}
 test:
-  _target_: src.datasets.ForecastCSVWindowDataset
+  _target_: src.datasets.ETTm2ForecastDataset
   csv_path: "data/raw/ett/ETTm2.csv"
   value_columns: ["HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT"]
   context_length: 96

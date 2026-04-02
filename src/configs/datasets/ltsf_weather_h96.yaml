@@ -1,7 +1,5 @@
 train:
-  _target_: src.datasets.ForecastCSVWindowDataset
-  csv_path: "data/raw/ltsf/weather.csv"
-  value_columns: null
+  _target_: src.datasets.LTSFWeatherForecastDataset
   context_length: 96
   horizon: 96
   split: "train"
@@ -10,9 +8,7 @@ train:
   normalize_with_train_stats: true
   instance_transforms: ${transforms.instance_transforms.train}
 val:
-  _target_: src.datasets.ForecastCSVWindowDataset
-  csv_path: "data/raw/ltsf/weather.csv"
-  value_columns: null
+  _target_: src.datasets.LTSFWeatherForecastDataset
   context_length: 96
   horizon: 96
   split: "val"
@@ -21,9 +17,7 @@ val:
   normalize_with_train_stats: true
   instance_transforms: ${transforms.instance_transforms.inference}
 test:
-  _target_: src.datasets.ForecastCSVWindowDataset
-  csv_path: "data/raw/ltsf/weather.csv"
-  value_columns: null
+  _target_: src.datasets.LTSFWeatherForecastDataset
   context_length: 96
   horizon: 96
   split: "test"
