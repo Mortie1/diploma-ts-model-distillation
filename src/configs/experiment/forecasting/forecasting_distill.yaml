@@ -4,7 +4,7 @@ defaults:
   - /metrics: forecasting
   - /datasets: smoke_forecasting
   - /dataloader: smoke
-  - /transforms: plain
+  - /transforms: forecasting_auto
   - /loss_function: forecasting_distill
   - /distillation: hybrid
   - _self_

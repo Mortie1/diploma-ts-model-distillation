@@ -22,7 +22,6 @@ class ForecastCSVWindowDataset(BaseDataset):
         split: str,
         train_ratio: float = 0.7,
         val_ratio: float = 0.1,
-        normalize_with_train_stats: bool = True,
         *args,
         **kwargs,
     ):
@@ -59,12 +58,6 @@ class ForecastCSVWindowDataset(BaseDataset):
             offset = val_end
         else:
             raise ValueError(f"Unknown split: {split}")
-
-        if normalize_with_train_stats:
-            train_vals = values[:train_end]
-            mean = train_vals.mean(axis=0, keepdims=True)
-            std = train_vals.std(axis=0, keepdims=True) + 1e-6
-            split_values = (split_values - mean) / std
 
         self.values = split_values
         max_start = len(self.values) - (context_length + horizon)

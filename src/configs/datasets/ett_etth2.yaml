@@ -7,7 +7,6 @@ train:
   split: "train"
   train_ratio: 0.7
   val_ratio: 0.1
-  normalize_with_train_stats: true
   instance_transforms: ${transforms.instance_transforms.train}
 val:
   _target_: src.datasets.ETTh2ForecastDataset
@@ -18,7 +17,6 @@ val:
   split: "val"
   train_ratio: 0.7
   val_ratio: 0.1
-  normalize_with_train_stats: true
   instance_transforms: ${transforms.instance_transforms.inference}
 test:
   _target_: src.datasets.ETTh2ForecastDataset
@@ -29,5 +27,4 @@ test:
   split: "test"
   train_ratio: 0.7
   val_ratio: 0.1
-  normalize_with_train_stats: true
   instance_transforms: ${transforms.instance_transforms.inference}

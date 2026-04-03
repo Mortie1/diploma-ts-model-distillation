@@ -1,8 +1,11 @@
 from itertools import repeat
 
+import numpy as np
+import torch
 from hydra.utils import instantiate
 
 from src.datasets.collate import collate_fn
+from src.transforms import Normalize1D
 from src.utils.init_utils import set_worker_seed
 
 
@@ -36,11 +39,71 @@ def move_batch_transforms_to_device(batch_transforms, device):
             tensor name.
         device (str): device to use for batch transforms.
     """
+    if batch_transforms is None:
+        return
+
     for transform_type in batch_transforms.keys():
         transforms = batch_transforms.get(transform_type)
         if transforms is not None:
             for transform_name in transforms.keys():
                 transforms[transform_name] = transforms[transform_name].to(device)
+
+
+def _iter_normalize_modules(module):
+    if isinstance(module, Normalize1D):
+        yield module
+        return
+    if hasattr(module, "children"):
+        for child in module.children():
+            yield from _iter_normalize_modules(child)
+
+
+def _compute_train_stats(train_values: np.ndarray, mode: str, eps: float):
+    if mode == "global":
+        mean = np.float32(train_values.mean())
+        std = np.float32(max(train_values.std(), eps))
+        return mean, std
+    mean = train_values.mean(axis=0, keepdims=True).astype(np.float32)
+    std = train_values.std(axis=0, keepdims=True).astype(np.float32)
+    std = np.maximum(std, eps)
+    mean = mean[..., None]
+    std = std[..., None]
+    return mean, std
+
+
+def _autofill_normalize1d_train_stats(datasets, batch_transforms):
+    if batch_transforms is None:
+        return
+
+    train_dataset = datasets.get("train")
+    if train_dataset is None or not hasattr(train_dataset, "values"):
+        return
+    train_values = getattr(train_dataset, "values")
+    if train_values is None:
+        return
+    train_values = np.asarray(train_values, dtype=np.float32)
+    if train_values.ndim != 2:
+        return
+
+    stats_cache = {}
+    for transforms in batch_transforms.values():
+        if transforms is None:
+            continue
+        for transform_module in transforms.values():
+            if transform_module is None:
+                continue
+            for norm_module in _iter_normalize_modules(transform_module):
+                if not norm_module.needs_train_stats:
+                    continue
+                cache_key = (norm_module.mode, float(norm_module.eps))
+                if cache_key not in stats_cache:
+                    stats_cache[cache_key] = _compute_train_stats(
+                        train_values=train_values,
+                        mode=norm_module.mode,
+                        eps=norm_module.eps,
+                    )
+                mean, std = stats_cache[cache_key]
+                norm_module.set_stats(mean=mean, std=std)
 
 
 def get_dataloaders(config, device):
@@ -58,12 +121,13 @@ def get_dataloaders(config, device):
             should be applied on the whole batch. Depend on the
             tensor name.
     """
-    # transforms or augmentations init
-    batch_transforms = instantiate(config.transforms.batch_transforms)
-    move_batch_transforms_to_device(batch_transforms, device)
-
     # dataset partitions init
     datasets = instantiate(config.datasets)  # instance transforms are defined inside
+
+    # transforms or augmentations init
+    batch_transforms = instantiate(config.transforms.batch_transforms)
+    _autofill_normalize1d_train_stats(datasets, batch_transforms)
+    move_batch_transforms_to_device(batch_transforms, device)
 
     # dataloaders init
     dataloaders = {}

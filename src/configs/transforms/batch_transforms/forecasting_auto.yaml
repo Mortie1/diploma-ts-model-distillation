@@ -1,0 +1,22 @@
+train:
+  context:
+    _target_: src.transforms.Normalize1D
+    mode: channel
+    auto_fill_from_train: true
+    eps: 1e-6
+  target:
+    _target_: src.transforms.Normalize1D
+    mode: channel
+    auto_fill_from_train: true
+    eps: 1e-6
+inference:
+  context:
+    _target_: src.transforms.Normalize1D
+    mode: channel
+    auto_fill_from_train: true
+    eps: 1e-6
+  target:
+    _target_: src.transforms.Normalize1D
+    mode: channel
+    auto_fill_from_train: true
+    eps: 1e-6
