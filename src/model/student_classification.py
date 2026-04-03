@@ -33,9 +33,9 @@ class StudentClassifier(nn.Module):
         self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
         self.head = nn.Linear(hidden_dim, n_classes)
 
-    def forward(self, x: torch.Tensor, **batch):
-        # x: [B, C, T]
-        feats = self.feature(x).transpose(1, 2)
+    def forward(self, inputs: torch.Tensor, **batch):
+        # inputs: [B, C, T]
+        feats = self.feature(inputs).transpose(1, 2)
         encoded = self.encoder(feats)
         pooled = encoded.mean(dim=1)
         logits = self.head(pooled)

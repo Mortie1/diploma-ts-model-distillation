@@ -3,7 +3,7 @@ defaults:
   - /metrics: forecasting
   - /datasets: ett_etth1_h96
   - /dataloader: smoke
-  - /transforms: plain
+  - /transforms: forecasting_auto
   - _self_
 
 model:
@@ -11,7 +11,7 @@ model:
   horizon: 96
 
 inferencer:
-  device_tensors: ["context", "target"]
+  device_tensors: ["inputs", "targets"]
   device: auto
   require_cuda: false
   save_path: "distill_predictions"

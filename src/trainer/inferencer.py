@@ -142,8 +142,7 @@ class Inferencer(BaseTrainer):
             output_id = current_id + i
             if "logits" in batch:
                 logits = batch["logits"][i].clone()
-                label_key = "y" if "y" in batch else "labels"
-                label = batch[label_key][i].clone()
+                label = batch["targets"][i].clone()
                 output = {
                     "pred_label": logits.argmax(dim=-1),
                     "label": label,
@@ -152,7 +151,7 @@ class Inferencer(BaseTrainer):
             else:
                 output = {
                     "forecast": batch["forecast"][i].clone(),
-                    "target": batch["target"][i].clone(),
+                    "targets": batch["targets"][i].clone(),
                 }
 
             if self.save_path is not None:

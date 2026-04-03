@@ -1,6 +1,6 @@
 _target_: src.distillation.DistillationBridge
 enabled: false
-input_key: context
+input_key: inputs
 student_hidden_key: student_hidden
 student_pred_key: student_pred
 student_hidden_dim: 128

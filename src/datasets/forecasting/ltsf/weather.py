@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from src.datasets.catalog.forecast_csv import ForecastCSVWindowDataset
+from src.datasets.forecasting.window_dataset import ForecastCSVWindowDataset
 
 
-class LTSFTrafficForecastDataset(ForecastCSVWindowDataset):
+class LTSFWeatherForecastDataset(ForecastCSVWindowDataset):
     def __init__(
         self,
         context_length: int,
@@ -11,8 +11,7 @@ class LTSFTrafficForecastDataset(ForecastCSVWindowDataset):
         split: str,
         train_ratio: float = 0.7,
         val_ratio: float = 0.1,
-        normalize_with_train_stats: bool = True,
-        csv_path: str = "data/raw/ltsf/traffic.csv",
+        csv_path: str = "data/raw/ltsf/weather.csv",
         *args,
         **kwargs,
     ):
@@ -24,7 +23,6 @@ class LTSFTrafficForecastDataset(ForecastCSVWindowDataset):
             split=split,
             train_ratio=train_ratio,
             val_ratio=val_ratio,
-            normalize_with_train_stats=normalize_with_train_stats,
             *args,
             **kwargs,
         )

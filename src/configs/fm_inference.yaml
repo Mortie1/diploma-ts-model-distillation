@@ -15,7 +15,7 @@ model:
   finetune_mode: "none"
 
 inferencer:
-  device_tensors: ["context", "target"]
+  device_tensors: ["inputs", "targets"]
   device: auto
   require_cuda: false
   save_path: "fm_predictions"

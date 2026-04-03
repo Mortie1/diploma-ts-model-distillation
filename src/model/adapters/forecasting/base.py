@@ -145,12 +145,12 @@ class BaseForecastAdapter(nn.Module, ABC):
         return tuple(dict.fromkeys(normalized))
 
     def _predict_with_trainable(
-        self, context: torch.Tensor, target: Optional[torch.Tensor] = None
+        self, inputs: torch.Tensor, targets: Optional[torch.Tensor] = None
     ) -> Optional[torch.Tensor]:
         return None
 
     @abstractmethod
-    def _predict_with_provider(self, context: torch.Tensor) -> Optional[torch.Tensor]:
+    def _predict_with_provider(self, inputs: torch.Tensor) -> Optional[torch.Tensor]:
         raise NotImplementedError
 
     def _warn_provider_fallback(self):
@@ -161,35 +161,35 @@ class BaseForecastAdapter(nn.Module, ABC):
             )
             self._provider_warning_printed = True
 
-    def forward(self, context: torch.Tensor, **batch):
-        target = batch.get("target")
+    def forward(self, inputs: torch.Tensor, **batch):
+        targets = batch.get("targets")
         provider_is_trainable = (
             self.provider_trainable is not None and self.finetune_mode in {"full", "lora"}
         )
         grad_ctx = nullcontext() if provider_is_trainable else torch.no_grad()
 
         with grad_ctx:
-            base_forecast = self._predict_with_trainable(context=context, target=target)
+            base_forecast = self._predict_with_trainable(inputs, targets)
             if base_forecast is None:
-                base_forecast = self._predict_with_provider(context)
+                base_forecast = self._predict_with_provider(inputs)
 
         if base_forecast is None:
             self._warn_provider_fallback()
             base_forecast = torch.zeros(
-                context.size(0),
+                inputs.size(0),
                 self.in_channels,
                 self.horizon,
-                device=context.device,
-                dtype=context.dtype,
+                device=inputs.device,
+                dtype=inputs.dtype,
             )
 
-        residual_hidden = self.residual_encoder(context).squeeze(-1)
+        residual_hidden = self.residual_encoder(inputs).squeeze(-1)
         residual = self.residual_head(residual_hidden).view(
-            context.size(0), self.in_channels, self.horizon
+            inputs.size(0), self.in_channels, self.horizon
         )
         forecast = base_forecast + self.residual_scale * residual
 
-        hidden = context.mean(dim=-1)
+        hidden = inputs.mean(dim=-1)
         return {
             "forecast": forecast,
             "student_hidden": hidden,
@@ -203,5 +203,5 @@ class PlaceholderForecastAdapter(BaseForecastAdapter):
     def _init_provider_model(self):
         return None
 
-    def _predict_with_provider(self, context: torch.Tensor) -> Optional[torch.Tensor]:
+    def _predict_with_provider(self, inputs: torch.Tensor) -> Optional[torch.Tensor]:
         return None

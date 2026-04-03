@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 
 from src.datasets.base_dataset import BaseDataset
-from src.datasets.catalog.download import maybe_download_ett
+from src.datasets.download import maybe_download_ett
 
 
 class ForecastCSVWindowDataset(BaseDataset):
@@ -22,7 +22,6 @@ class ForecastCSVWindowDataset(BaseDataset):
         split: str,
         train_ratio: float = 0.7,
         val_ratio: float = 0.1,
-        normalize_with_train_stats: bool = True,
         *args,
         **kwargs,
     ):
@@ -60,12 +59,6 @@ class ForecastCSVWindowDataset(BaseDataset):
         else:
             raise ValueError(f"Unknown split: {split}")
 
-        if normalize_with_train_stats:
-            train_vals = values[:train_end]
-            mean = train_vals.mean(axis=0, keepdims=True)
-            std = train_vals.std(axis=0, keepdims=True) + 1e-6
-            split_values = (split_values - mean) / std
-
         self.values = split_values
         max_start = len(self.values) - (context_length + horizon)
         index = []
@@ -81,12 +74,12 @@ class ForecastCSVWindowDataset(BaseDataset):
         end_tgt = end_ctx + self.horizon
 
         chunk = self.values[start:end_tgt]
-        context = torch.from_numpy(chunk[: self.context_length]).transpose(0, 1)
-        target = torch.from_numpy(chunk[self.context_length :]).transpose(0, 1)
+        inputs = torch.from_numpy(chunk[: self.context_length]).transpose(0, 1)
+        targets = torch.from_numpy(chunk[self.context_length :]).transpose(0, 1)
 
         instance_data = {
-            "context": context,
-            "target": target,
+            "inputs": inputs,
+            "targets": targets,
         }
         instance_data = self.preprocess_data(instance_data)
         return instance_data

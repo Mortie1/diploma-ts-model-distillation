@@ -4,7 +4,7 @@ defaults:
   - /metrics: forecasting
   - /datasets: ett_etth1_h96
   - /dataloader: smoke
-  - /transforms: plain
+  - /transforms: forecasting_auto
   - /loss_function: forecasting
   - _self_
 
@@ -36,7 +36,7 @@ trainer:
   compile_dynamic: null
   compile_fullgraph: null
   compile_distillation: false
-  device_tensors: ["context", "target"]
+  device_tensors: ["inputs", "targets"]
   resume_from: null
   device: auto
   require_cuda: false

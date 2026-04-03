@@ -9,8 +9,13 @@ class ClassificationLoss(nn.Module):
         super().__init__()
         self.ce = nn.CrossEntropyLoss()
 
-    def forward(self, logits: torch.Tensor, y: torch.Tensor, **batch):
-        loss = self.ce(logits, y)
+    def forward(
+        self,
+        logits: torch.Tensor,
+        targets: torch.Tensor,
+        **batch,
+    ):
+        loss = self.ce(logits, targets)
         return {"loss": loss, "task_loss": loss}
 
 
@@ -32,13 +37,13 @@ class DistillClassificationLoss(nn.Module):
     def forward(
         self,
         logits: torch.Tensor,
-        y: torch.Tensor,
         student_hidden: torch.Tensor,
+        targets: torch.Tensor,
         teacher_hidden: torch.Tensor | None = None,
         teacher_pred: torch.Tensor | None = None,
         **batch,
     ):
-        task_loss = self.ce(logits, y)
+        task_loss = self.ce(logits, targets)
 
         logit_kd = torch.tensor(0.0, device=logits.device)
         feat_kd = torch.tensor(0.0, device=logits.device)

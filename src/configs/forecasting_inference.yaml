@@ -1,13 +1,13 @@
 defaults:
   - /model: student_forecasting
   - /metrics: forecasting
-  - /datasets: synthetic_forecasting
+  - /datasets: smoke_forecasting
   - /dataloader: smoke
-  - /transforms: plain
+  - /transforms: forecasting_auto
   - _self_
 
 inferencer:
-  device_tensors: ["context", "target"]
+  device_tensors: ["inputs", "targets"]
   device: auto
   require_cuda: false
   save_path: "forecasting_predictions"

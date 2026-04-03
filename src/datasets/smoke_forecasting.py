@@ -7,7 +7,7 @@ import torch
 from src.datasets.base_dataset import BaseDataset
 
 
-class SyntheticForecastingDataset(BaseDataset):
+class SmokeForecastingDataset(BaseDataset):
     """Synthetic TS forecasting dataset (context -> horizon)."""
 
     def __init__(
@@ -38,11 +38,15 @@ class SyntheticForecastingDataset(BaseDataset):
     def __getitem__(self, ind):
         data_dict = self._index[ind]
         series = self.load_object(data_dict["path"])
-        context = series[:, : self.context_length]
-        target = series[:, self.context_length :]
+        inputs = series[:, : self.context_length]
+        targets = series[:, self.context_length :]
         instance_data = {
-            "context": context,
-            "target": target,
+            "inputs": inputs,
+            "targets": targets,
         }
         instance_data = self.preprocess_data(instance_data)
         return instance_data
+
+
+class SyntheticForecastingDataset(SmokeForecastingDataset):
+    """Backward-compatible alias."""

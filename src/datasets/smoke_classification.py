@@ -7,7 +7,7 @@ import torch
 from src.datasets.base_dataset import BaseDataset
 
 
-class SyntheticClassificationDataset(BaseDataset):
+class SmokeClassificationDataset(BaseDataset):
     """Synthetic TS classification dataset used for smoke/e2e runs."""
 
     def __init__(
@@ -36,13 +36,17 @@ class SyntheticClassificationDataset(BaseDataset):
         freq = 1 + label
         base = torch.sin(2 * math.pi * freq * t)
         noise = 0.05 * torch.randn(self.length)
-        x = (base + noise).unsqueeze(0).repeat(self.n_channels, 1)
-        return x
+        inputs = (base + noise).unsqueeze(0).repeat(self.n_channels, 1)
+        return inputs
 
     def __getitem__(self, ind):
         data_dict = self._index[ind]
-        x = self.load_object(data_dict["path"])
-        y = int(data_dict["label"])
-        instance_data = {"x": x, "y": y}
+        inputs = self.load_object(data_dict["path"])
+        targets = int(data_dict["label"])
+        instance_data = {"inputs": inputs, "targets": targets}
         instance_data = self.preprocess_data(instance_data)
         return instance_data
+
+
+class SyntheticClassificationDataset(SmokeClassificationDataset):
+    """Backward-compatible alias."""

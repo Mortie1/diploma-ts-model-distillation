@@ -66,13 +66,13 @@ class BaseClassificationAdapter(nn.Module, ABC):
             )
             self._provider_warning_printed = True
 
-    def _run_provider(self, x: torch.Tensor) -> Optional[torch.Tensor]:
+    def _run_provider(self, inputs: torch.Tensor) -> Optional[torch.Tensor]:
         return None
 
-    def forward(self, x: torch.Tensor, **batch):
-        pooled = self.encoder(x).squeeze(-1)
+    def forward(self, inputs: torch.Tensor, **batch):
+        pooled = self.encoder(inputs).squeeze(-1)
         logits = self.head(pooled)
-        provider_logits = self._run_provider(x)
+        provider_logits = self._run_provider(inputs)
         if provider_logits is None:
             self._warn_provider_fallback()
         else:

@@ -1,4 +1,5 @@
-from src.datasets.catalog import (
+from src.datasets.classification import UCRDataset
+from src.datasets.forecasting import (
     ETTh1ForecastDataset,
     ETTh2ForecastDataset,
     ETTm1ForecastDataset,
@@ -7,14 +8,21 @@ from src.datasets.catalog import (
     LTSFElectricityForecastDataset,
     LTSFTrafficForecastDataset,
     LTSFWeatherForecastDataset,
-    UCRDataset,
 )
 from src.datasets.example import ExampleDataset
-from src.datasets.ts_classification import SyntheticClassificationDataset
-from src.datasets.ts_forecasting import SyntheticForecastingDataset
+from src.datasets.smoke_classification import (
+    SmokeClassificationDataset,
+    SyntheticClassificationDataset,
+)
+from src.datasets.smoke_forecasting import (
+    SmokeForecastingDataset,
+    SyntheticForecastingDataset,
+)
 
 __all__ = [
     "ExampleDataset",
+    "SmokeClassificationDataset",
+    "SmokeForecastingDataset",
     "SyntheticClassificationDataset",
     "SyntheticForecastingDataset",
     "UCRDataset",
