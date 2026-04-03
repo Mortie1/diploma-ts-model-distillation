@@ -2,7 +2,7 @@ defaults:
   - /model: student_forecasting
   - /writer: cometml
   - /metrics: forecasting
-  - /datasets: synthetic_forecasting
+  - /datasets: smoke_forecasting
   - /dataloader: smoke
   - /transforms: plain
   - /loss_function: forecasting_distill

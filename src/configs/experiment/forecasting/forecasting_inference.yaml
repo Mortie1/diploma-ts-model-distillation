@@ -1,7 +1,7 @@
 defaults:
   - /model: student_forecasting
   - /metrics: forecasting
-  - /datasets: synthetic_forecasting
+  - /datasets: smoke_forecasting
   - /dataloader: smoke
   - /transforms: plain
   - _self_
