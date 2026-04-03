@@ -12,7 +12,7 @@ class DistillationBridge(nn.Module):
     def __init__(
         self,
         enabled: bool = False,
-        input_key: str = "x",
+        input_key: str = "inputs",
         student_hidden_key: str = "student_hidden",
         student_pred_key: str = "logits",
         student_hidden_dim: int = 256,
