@@ -63,7 +63,7 @@ infer_dataset_stats() {
   local dataset_name="$1"
   .venv/bin/python - "$dataset_name" "$UCR_ROOT" <<'PY'
 import sys
-from src.datasets.catalog.ucr_dataset import UCRDataset
+from src.datasets.classification.ucr_dataset import UCRDataset
 
 dataset_name = sys.argv[1]
 root = sys.argv[2]

@@ -7,7 +7,7 @@ import torch
 from src.datasets.base_dataset import BaseDataset
 
 
-class SyntheticClassificationDataset(BaseDataset):
+class SmokeClassificationDataset(BaseDataset):
     """Synthetic TS classification dataset used for smoke/e2e runs."""
 
     def __init__(
@@ -46,3 +46,7 @@ class SyntheticClassificationDataset(BaseDataset):
         instance_data = {"x": x, "y": y}
         instance_data = self.preprocess_data(instance_data)
         return instance_data
+
+
+class SyntheticClassificationDataset(SmokeClassificationDataset):
+    """Backward-compatible alias."""

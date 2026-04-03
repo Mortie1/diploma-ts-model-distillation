@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 
 from src.datasets.base_dataset import BaseDataset
-from src.datasets.catalog.download import maybe_download_ett
+from src.datasets.download import maybe_download_ett
 
 
 class ForecastCSVWindowDataset(BaseDataset):

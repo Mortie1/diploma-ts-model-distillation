@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 from src.datasets.base_dataset import BaseDataset
-from src.datasets.catalog.download import maybe_download_ucr
+from src.datasets.download import maybe_download_ucr
 
 
 class UCRDataset(BaseDataset):
