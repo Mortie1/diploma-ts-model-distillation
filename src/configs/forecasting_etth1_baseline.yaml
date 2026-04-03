@@ -32,7 +32,7 @@ trainer:
   compile_dynamic: null
   compile_fullgraph: null
   compile_distillation: false
-  device_tensors: ["context", "target"]
+  device_tensors: ["inputs", "targets"]
   resume_from: null
   device: auto
   require_cuda: false

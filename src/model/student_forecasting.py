@@ -36,9 +36,9 @@ class StudentForecaster(nn.Module):
         self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
         self.head = nn.Linear(hidden_dim, in_channels * horizon)
 
-    def forward(self, context: torch.Tensor, **batch):
-        # context: [B, C, Tc]
-        feats = self.feature(context).transpose(1, 2)
+    def forward(self, inputs: torch.Tensor, **batch):
+        # inputs: [B, C, Tc]
+        feats = self.feature(inputs).transpose(1, 2)
         encoded = self.encoder(feats)
         pooled = encoded.mean(dim=1)
 

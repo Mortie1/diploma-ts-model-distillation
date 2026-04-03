@@ -56,13 +56,13 @@ class UCRDataset(BaseDataset):
 
     def load_object(self, path):
         i = int(path)
-        x = torch.from_numpy(self.samples[i]).unsqueeze(0)
-        return x
+        inputs = torch.from_numpy(self.samples[i]).unsqueeze(0)
+        return inputs
 
     def __getitem__(self, ind):
         data_dict = self._index[ind]
-        x = self.load_object(data_dict["path"])
-        y = int(data_dict["label"])
-        instance_data = {"x": x, "y": y}
+        inputs = self.load_object(data_dict["path"])
+        targets = int(data_dict["label"])
+        instance_data = {"inputs": inputs, "targets": targets}
         instance_data = self.preprocess_data(instance_data)
         return instance_data

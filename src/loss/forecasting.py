@@ -9,8 +9,13 @@ class ForecastingLoss(nn.Module):
         super().__init__()
         self.mse = nn.MSELoss()
 
-    def forward(self, forecast: torch.Tensor, target: torch.Tensor, **batch):
-        loss = self.mse(forecast, target)
+    def forward(
+        self,
+        forecast: torch.Tensor,
+        targets: torch.Tensor,
+        **batch,
+    ):
+        loss = self.mse(forecast, targets)
         return {"loss": loss, "task_loss": loss}
 
 
@@ -28,14 +33,14 @@ class DistillForecastingLoss(nn.Module):
     def forward(
         self,
         forecast: torch.Tensor,
-        target: torch.Tensor,
         student_hidden: torch.Tensor,
         student_pred: torch.Tensor,
+        targets: torch.Tensor,
         teacher_hidden: torch.Tensor | None = None,
         teacher_pred: torch.Tensor | None = None,
         **batch,
     ):
-        task_loss = self.mse(forecast, target)
+        task_loss = self.mse(forecast, targets)
 
         logit_kd = torch.tensor(0.0, device=forecast.device)
         feat_kd = torch.tensor(0.0, device=forecast.device)

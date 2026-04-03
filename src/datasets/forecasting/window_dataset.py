@@ -74,12 +74,12 @@ class ForecastCSVWindowDataset(BaseDataset):
         end_tgt = end_ctx + self.horizon
 
         chunk = self.values[start:end_tgt]
-        context = torch.from_numpy(chunk[: self.context_length]).transpose(0, 1)
-        target = torch.from_numpy(chunk[self.context_length :]).transpose(0, 1)
+        inputs = torch.from_numpy(chunk[: self.context_length]).transpose(0, 1)
+        targets = torch.from_numpy(chunk[self.context_length :]).transpose(0, 1)
 
         instance_data = {
-            "context": context,
-            "target": target,
+            "inputs": inputs,
+            "targets": targets,
         }
         instance_data = self.preprocess_data(instance_data)
         return instance_data

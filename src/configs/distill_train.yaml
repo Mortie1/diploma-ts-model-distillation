@@ -34,7 +34,7 @@ trainer:
   compile_dynamic: null
   compile_fullgraph: null
   compile_distillation: false
-  device_tensors: ["context", "target"]
+  device_tensors: ["inputs", "targets"]
   resume_from: null
   device: auto
   require_cuda: false
@@ -55,7 +55,7 @@ writer:
 
 distillation:
   enabled: true
-  input_key: context
+  input_key: inputs
   student_hidden_dim: 128
   student_pred_dim: 672
   teacher_backend: mock

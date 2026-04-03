@@ -1,21 +1,21 @@
 train:
-  context:
+  inputs:
     _target_: src.transforms.Normalize1D
     mode: channel
     auto_fill_from_train: true
     eps: 1e-6
-  target:
+  targets:
     _target_: src.transforms.Normalize1D
     mode: channel
     auto_fill_from_train: true
     eps: 1e-6
 inference:
-  context:
+  inputs:
     _target_: src.transforms.Normalize1D
     mode: channel
     auto_fill_from_train: true
     eps: 1e-6
-  target:
+  targets:
     _target_: src.transforms.Normalize1D
     mode: channel
     auto_fill_from_train: true
