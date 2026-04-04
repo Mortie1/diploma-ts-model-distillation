@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -12,6 +13,8 @@ from src.datasets.classification.cache_utils import (
     materialize_tensor_cache,
 )
 from src.datasets.download import maybe_download_pamap2
+
+logger = logging.getLogger(__name__)
 
 
 class PAMAP2Dataset(BaseDataset):
@@ -73,6 +76,7 @@ class PAMAP2Dataset(BaseDataset):
         root_path = Path(root)
         protocol_dir = root_path / "PAMAP2_Dataset" / "Protocol"
         if not protocol_dir.exists():
+            logger.info("PAMAP2 not found at %s, downloading...", protocol_dir)
             maybe_download_pamap2(root=root_path)
         if not protocol_dir.exists():
             raise FileNotFoundError(f"PAMAP2 protocol directory not found: {protocol_dir}")
@@ -93,9 +97,11 @@ class PAMAP2Dataset(BaseDataset):
         cache_dir = cache_base / "pamap2" / split_key / signature
         cached_index = load_cached_index(cache_dir)
         if cached_index is not None:
+            logger.info("PAMAP2 cache hit: split=%s path=%s", split_key, cache_dir)
             self.labels = np.array([int(x["label"]) for x in cached_index], dtype=np.int64)
             super().__init__(index=cached_index, *args, **kwargs)
             return
+        logger.info("PAMAP2 cache miss: split=%s -> building cache at %s", split_key, cache_dir)
 
         samples: list[tuple[np.ndarray, int]] = []
 
@@ -156,6 +162,8 @@ class PAMAP2Dataset(BaseDataset):
             cache_dir=cache_dir,
             samples_with_labels=((x, int(label)) for x, label in samples),
             meta={**cfg, "signature": signature, "n_samples": int(len(samples))},
+            total=int(len(samples)),
+            progress_desc=f"caching pamap2/{split_key}",
         )
         super().__init__(index=index, *args, **kwargs)
 
