@@ -9,6 +9,9 @@ from src.model.adapters.classification.base import BaseClassificationAdapter
 
 class UniTSClassificationAdapter(BaseClassificationAdapter):
     provider_name = "units"
+    model_size_to_id = {
+        "base": "mims-harvard/units",
+    }
 
     def _init_provider_model(self):
         # UniTS public checkpoints often require custom code.

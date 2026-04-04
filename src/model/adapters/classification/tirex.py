@@ -10,6 +10,9 @@ from src.model.adapters.classification.base import BaseClassificationAdapter
 
 class TiRexClassificationAdapter(BaseClassificationAdapter):
     provider_name = "tirex"
+    model_size_to_id = {
+        "base": "NX-AI/TiRex",
+    }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

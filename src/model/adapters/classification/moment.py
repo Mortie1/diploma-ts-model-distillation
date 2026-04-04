@@ -9,6 +9,11 @@ from src.model.adapters.classification.base import BaseClassificationAdapter
 
 class MomentClassificationAdapter(BaseClassificationAdapter):
     provider_name = "moment"
+    model_size_to_id = {
+        "small": "AutonLab/MOMENT-1-small",
+        "base": "AutonLab/MOMENT-1-base",
+        "large": "AutonLab/MOMENT-1-large",
+    }
 
     def _init_provider_model(self):
         try:
