@@ -1,7 +1,0 @@
-_target_: src.model.MomentClassificationAdapter
-model_size: "small"
-n_classes: 2
-in_channels: 1
-require_provider_model: true
-freeze_provider: true
-fail_on_provider_fallback: true

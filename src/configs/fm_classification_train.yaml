@@ -42,9 +42,6 @@ trainer:
 
 writer:
   run_name: "fm_classification_train"
-  auto_name: true
-  short_name: "classification-fm"
-  main_change: "base"
   description: "Base FM classification run."
   tags: ["classification", "fm", "train"]
 

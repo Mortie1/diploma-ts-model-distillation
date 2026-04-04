@@ -1,0 +1,7 @@
+_target_: src.model.Chronos2ClassificationAdapter
+model_size: "base"
+n_classes: 24
+in_channels: 18
+require_provider_model: true
+freeze_provider: true
+fail_on_provider_fallback: true

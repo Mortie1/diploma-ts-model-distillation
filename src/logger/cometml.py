@@ -19,7 +19,6 @@ class CometMLWriter:
         workspace=None,
         run_id=None,
         run_name=None,
-        display_name=None,
         description=None,
         tags=None,
         mode="online",
@@ -47,7 +46,7 @@ class CometMLWriter:
                 comet_ml.login()
 
             self.run_id = run_id
-            desired_name = display_name or run_name
+            desired_name = run_name
 
             resume = False
             if project_config["trainer"].get("resume_from") is not None:

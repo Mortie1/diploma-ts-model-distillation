@@ -9,7 +9,6 @@ from src.datasets.data_utils import get_dataloaders
 from src.trainer import Trainer
 from src.utils.device import resolve_torch_device
 from src.utils.init_utils import set_random_seed, setup_saving_and_logging
-from src.utils.run_metadata import apply_auto_run_metadata
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -59,7 +58,6 @@ def main(config):
         config (DictConfig): hydra experiment config.
     """
     set_random_seed(config.trainer.seed)
-    apply_auto_run_metadata(config)
 
     project_config = OmegaConf.to_container(config)
     logger = setup_saving_and_logging(config)
