@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -12,6 +13,8 @@ from src.datasets.classification.cache_utils import (
     materialize_tensor_cache,
 )
 from src.datasets.download import maybe_download_ucr
+
+logger = logging.getLogger(__name__)
 
 
 class UCRDataset(BaseDataset):
@@ -59,9 +62,11 @@ class UCRDataset(BaseDataset):
 
         cached_index = load_cached_index(cache_dir)
         if cached_index is not None:
+            logger.info("UCR cache hit: dataset=%s split=%s path=%s", dataset_name, split_key, cache_dir)
             self.labels = np.array([int(x["label"]) for x in cached_index], dtype=np.int64)
             super().__init__(index=cached_index, *args, **kwargs)
             return
+        logger.info("UCR cache miss: dataset=%s split=%s -> building cache at %s", dataset_name, split_key, cache_dir)
 
         # Many UCR files are tab-separated; some exports are plain whitespace text.
         arr = np.loadtxt(file_path, delimiter=None)
@@ -81,6 +86,8 @@ class UCRDataset(BaseDataset):
             cache_dir=cache_dir,
             samples_with_labels=((self.samples[i][None, :], int(self.labels[i])) for i in range(len(self.labels))),
             meta={**cfg, "signature": signature, "n_samples": int(len(self.labels))},
+            total=int(len(self.labels)),
+            progress_desc=f"caching ucr/{dataset_name}/{split_key}",
         )
         self.samples = None  # no RAM copy after cache materialization
         super().__init__(index=index, *args, **kwargs)
