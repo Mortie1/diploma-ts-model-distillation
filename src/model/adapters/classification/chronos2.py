@@ -10,6 +10,12 @@ from src.model.adapters.classification.base import BaseClassificationAdapter
 
 class Chronos2ClassificationAdapter(BaseClassificationAdapter):
     provider_name = "chronos2"
+    model_size_to_id = {
+        "base": "amazon/chronos-2",
+        "small": "amazon/chronos-2",
+        "medium": "amazon/chronos-2",
+        "large": "amazon/chronos-2",
+    }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -24,7 +30,6 @@ class Chronos2ClassificationAdapter(BaseClassificationAdapter):
     def _init_provider_model(self):
         try:
             from chronos import Chronos2Pipeline
-
             pipeline = Chronos2Pipeline.from_pretrained(self.model_id)
             self.provider_pipeline = pipeline
             return pipeline.model

@@ -9,6 +9,9 @@ from src.model.adapters.classification.base import BaseClassificationAdapter
 
 class TSPulseClassificationAdapter(BaseClassificationAdapter):
     provider_name = "tspulse"
+    model_size_to_id = {
+        "r1": "ibm-granite/granite-timeseries-tspulse-r1",
+    }
 
     def _init_provider_model(self):
         # IBM Granite TSPulse may expose custom APIs; try HF auto loading with remote code.
