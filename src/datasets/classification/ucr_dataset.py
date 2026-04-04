@@ -3,9 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
-import torch
 
 from src.datasets.base_dataset import BaseDataset
+from src.datasets.classification.cache_utils import (
+    cache_signature,
+    load_cached_index,
+    load_tensor_file,
+    materialize_tensor_cache,
+)
 from src.datasets.download import maybe_download_ucr
 
 
@@ -18,11 +23,13 @@ class UCRDataset(BaseDataset):
         dataset_name: str,
         split: str,
         normalize: bool = True,
+        cache_root: str | None = None,
         *args,
         **kwargs,
     ):
         root_path = Path(root)
-        split_name = "TRAIN" if split.lower() == "train" else "TEST"
+        split_key = split.lower()
+        split_name = "TRAIN" if split_key == "train" else "TEST"
         candidates = [
             root_path / dataset_name / f"{dataset_name}_{split_name}.tsv",
             root_path / dataset_name / f"{dataset_name}_{split_name}.txt",
@@ -36,6 +43,25 @@ class UCRDataset(BaseDataset):
             if file_path is None:
                 checked = ", ".join(str(p) for p in candidates)
                 raise FileNotFoundError(f"Could not find UCR split file. Checked: {checked}")
+
+        cache_base = Path(cache_root) if cache_root else (root_path / ".cache" / "classification")
+        cfg = {
+            "dataset": "ucr",
+            "dataset_name": dataset_name,
+            "split": split_key,
+            "normalize": bool(normalize),
+            "file_path": str(file_path.resolve()),
+            "file_size": file_path.stat().st_size,
+            "file_mtime_ns": file_path.stat().st_mtime_ns,
+        }
+        signature = cache_signature(cfg)
+        cache_dir = cache_base / "ucr" / dataset_name / split_key / signature
+
+        cached_index = load_cached_index(cache_dir)
+        if cached_index is not None:
+            self.labels = np.array([int(x["label"]) for x in cached_index], dtype=np.int64)
+            super().__init__(index=cached_index, *args, **kwargs)
+            return
 
         # Many UCR files are tab-separated; some exports are plain whitespace text.
         arr = np.loadtxt(file_path, delimiter=None)
@@ -51,13 +77,16 @@ class UCRDataset(BaseDataset):
             self.samples = (self.samples - mean) / std
         self.labels = np.array([label_map[val] for val in labels], dtype=np.int64)
 
-        index = [{"path": str(i), "label": int(self.labels[i])} for i in range(len(self.labels))]
+        index = materialize_tensor_cache(
+            cache_dir=cache_dir,
+            samples_with_labels=((self.samples[i][None, :], int(self.labels[i])) for i in range(len(self.labels))),
+            meta={**cfg, "signature": signature, "n_samples": int(len(self.labels))},
+        )
+        self.samples = None  # no RAM copy after cache materialization
         super().__init__(index=index, *args, **kwargs)
 
     def load_object(self, path):
-        i = int(path)
-        inputs = torch.from_numpy(self.samples[i]).unsqueeze(0)
-        return inputs
+        return load_tensor_file(path)
 
     def __getitem__(self, ind):
         data_dict = self._index[ind]

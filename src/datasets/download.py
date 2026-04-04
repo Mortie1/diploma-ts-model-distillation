@@ -9,6 +9,7 @@ from pathlib import Path
 from huggingface_hub import hf_hub_download
 
 UCR_URL_TEMPLATE = "https://www.timeseriesclassification.com/aeon-toolkit/{name}.zip"
+PAMAP2_URL = "https://archive.ics.uci.edu/ml/machine-learning-databases/00231/PAMAP2_Dataset.zip"
 ETT_URLS = {
     "ETTh1": "https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTh1.csv",
     "ETTh2": "https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTh2.csv",
@@ -38,6 +39,17 @@ def maybe_download_ucr(dataset_name: str, root: Path) -> None:
     root.mkdir(parents=True, exist_ok=True)
     url = UCR_URL_TEMPLATE.format(name=dataset_name)
     blob = download_bytes(url)
+    with zipfile.ZipFile(io.BytesIO(blob)) as zf:
+        zf.extractall(root)
+
+
+def maybe_download_pamap2(root: Path) -> None:
+    protocol_dir = root / "PAMAP2_Dataset" / "Protocol"
+    if protocol_dir.exists():
+        return
+
+    root.mkdir(parents=True, exist_ok=True)
+    blob = download_bytes(PAMAP2_URL)
     with zipfile.ZipFile(io.BytesIO(blob)) as zf:
         zf.extractall(root)
 
