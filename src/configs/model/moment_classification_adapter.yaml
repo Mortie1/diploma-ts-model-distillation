@@ -1,5 +1,5 @@
 _target_: src.model.MomentClassificationAdapter
-model_id: "AutonLab/MOMENT-1-small"
+model_size: "small"
 n_classes: 2
 in_channels: 1
 require_provider_model: true
