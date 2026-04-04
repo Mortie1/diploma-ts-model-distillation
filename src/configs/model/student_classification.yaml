@@ -1,6 +1,6 @@
-_target_: src.model.StudentForecaster
+_target_: src.model.StudentClassifier
 in_channels: 1
-horizon: 24
+n_classes: 2
 hidden_dim: 128
 n_heads: 4
 n_layers: 2

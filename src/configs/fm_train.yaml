@@ -1,20 +1,12 @@
 defaults:
-  - /model: tsfm_forecast_adapter
+  - /model: moment_classification_adapter
   - /writer: cometml
-  - /metrics: forecasting
-  - /datasets: ett_etth1_h96
+  - /metrics: classification
+  - /datasets: ucr_gunpoint
   - /dataloader: smoke
   - /transforms: plain
-  - /loss_function: forecasting
+  - /loss_function: classification
   - _self_
-
-model:
-  provider: "chronos"
-  model_id: "amazon/chronos-2"
-  in_channels: 7
-  horizon: 96
-  require_provider_model: false
-  finetune_mode: "none"
 
 optimizer:
   _target_: torch.optim.Adam
@@ -42,7 +34,7 @@ trainer:
   device: auto
   require_cuda: false
   override: true
-  monitor: "min test_MAE"
+  monitor: "max test_Accuracy"
   save_period: 1
   early_stop: ${trainer.n_epochs}
   save_dir: "saved"
@@ -51,11 +43,11 @@ trainer:
 writer:
   run_name: "fm_train"
   auto_name: true
-  short_name: "forecasting-fm"
+  short_name: "classification-fm"
   main_change: "base"
-  description: "Base FM forecasting run."
-  tags: ["forecasting", "fm", "train"]
+  description: "Base FM classification run."
+  tags: ["classification", "fm", "train"]
 
 dataloader:
   batch_size: 64
-  num_workers: 4
+  num_workers: 2

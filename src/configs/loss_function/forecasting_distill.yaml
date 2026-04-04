@@ -1,3 +1,0 @@
-_target_: src.loss.DistillForecastingLoss
-lambda_logit: 0.5
-lambda_feat: 0.5

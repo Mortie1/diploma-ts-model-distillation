@@ -7,5 +7,5 @@ class ChronosClassificationAdapter(BaseClassificationAdapter):
     provider_name = "chronos"
 
     def _init_provider_model(self):
-        # Chronos is forecasting-native; classification fallback uses local head.
+        # Chronos is initialized for representation transfer into classification.
         return None

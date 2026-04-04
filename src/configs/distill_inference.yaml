@@ -1,14 +1,14 @@
 defaults:
-  - /model: student_forecasting
-  - /metrics: forecasting
-  - /datasets: ett_etth1_h96
+  - /model: student_classification
+  - /metrics: classification
+  - /datasets: ucr_gunpoint
   - /dataloader: smoke
-  - /transforms: forecasting_auto
+  - /transforms: plain
   - _self_
 
 model:
-  in_channels: 7
-  horizon: 96
+  in_channels: 1
+  n_classes: 2
 
 inferencer:
   device_tensors: ["inputs", "targets"]
@@ -20,4 +20,4 @@ inferencer:
 
 dataloader:
   batch_size: 64
-  num_workers: 4
+  num_workers: 2

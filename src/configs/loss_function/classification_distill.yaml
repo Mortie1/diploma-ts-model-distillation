@@ -1,0 +1,4 @@
+_target_: src.loss.DistillClassificationLoss
+lambda_logit: 0.5
+lambda_feat: 0.5
+temperature: 2.0
