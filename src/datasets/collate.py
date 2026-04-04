@@ -14,6 +14,5 @@ def collate_fn(dataset_items: list[dict]):
             of the tensors.
     """
 
-    # Generic collation supports both classification and forecasting
-    # tasks as long as each dataset item is a dict of collatable values.
+    # Generic collation for dict-based classification items.
     return default_collate(dataset_items)

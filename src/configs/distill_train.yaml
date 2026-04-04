@@ -1,17 +1,17 @@
 defaults:
-  - /model: student_forecasting
+  - /model: student_classification
   - /writer: cometml
-  - /metrics: forecasting
-  - /datasets: ett_etth1_h96
+  - /metrics: classification
+  - /datasets: ucr_gunpoint
   - /dataloader: smoke
-  - /transforms: forecasting_auto
-  - /loss_function: forecasting_distill
+  - /transforms: plain
+  - /loss_function: classification_distill
   - /distillation: hybrid
   - _self_
 
 model:
-  in_channels: 7
-  horizon: 96
+  in_channels: 1
+  n_classes: 2
 
 optimizer:
   _target_: torch.optim.Adam
@@ -39,7 +39,7 @@ trainer:
   device: auto
   require_cuda: false
   override: true
-  monitor: "min test_MAE"
+  monitor: "max test_Accuracy"
   save_period: 1
   early_stop: ${trainer.n_epochs}
   save_dir: "saved"
@@ -48,19 +48,19 @@ trainer:
 writer:
   run_name: "distill_train"
   auto_name: true
-  short_name: "forecasting-distill"
+  short_name: "classification-distill"
   main_change: "base"
-  description: "Base distillation run for forecasting student."
-  tags: ["forecasting", "distill", "train"]
+  description: "Base distillation run for classification student."
+  tags: ["classification", "distill", "train"]
 
 distillation:
   enabled: true
   input_key: inputs
   student_hidden_dim: 128
-  student_pred_dim: 672
+  student_pred_dim: 2
   teacher_backend: mock
   teacher_hidden_dim: 256
 
 dataloader:
   batch_size: 64
-  num_workers: 4
+  num_workers: 2

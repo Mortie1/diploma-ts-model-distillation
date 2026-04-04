@@ -7,5 +7,5 @@ class TimesFMClassificationAdapter(BaseClassificationAdapter):
     provider_name = "timesfm"
 
     def _init_provider_model(self):
-        # TimesFM is forecasting-native; classification fallback uses local head.
+        # TimesFM is initialized for representation transfer into classification.
         return None

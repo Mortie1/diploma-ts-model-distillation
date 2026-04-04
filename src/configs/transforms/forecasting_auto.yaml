@@ -1,4 +1,0 @@
-defaults:
-  - batch_transforms: forecasting_auto
-  - instance_transforms: plain
-  - _self_

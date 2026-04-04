@@ -1,8 +1,0 @@
-train:
-  - _target_: src.metrics.ForecastingMAE
-    name: "TrainMAE"
-inference:
-  - _target_: src.metrics.ForecastingMAE
-    name: "MAE"
-  - _target_: src.metrics.ForecastingRMSE
-    name: "RMSE"
