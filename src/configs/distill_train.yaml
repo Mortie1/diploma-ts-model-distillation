@@ -47,9 +47,6 @@ trainer:
 
 writer:
   run_name: "distill_train"
-  auto_name: true
-  short_name: "classification-distill"
-  main_change: "base"
   description: "Base distillation run for classification student."
   tags: ["classification", "distill", "train"]
 

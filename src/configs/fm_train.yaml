@@ -1,5 +1,5 @@
 defaults:
-  - /model: moment_classification_adapter
+  - /model: classification_adapter
   - /writer: cometml
   - /metrics: classification
   - /datasets: ucr_gunpoint
@@ -42,9 +42,6 @@ trainer:
 
 writer:
   run_name: "fm_train"
-  auto_name: true
-  short_name: "classification-fm"
-  main_change: "base"
   description: "Base FM classification run."
   tags: ["classification", "fm", "train"]
 

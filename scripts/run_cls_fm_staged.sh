@@ -82,8 +82,7 @@ run_one() {
   local train_len="$6"
 
   local log_file="$OUT_DIR/${dataset_name}_${name}.log"
-  local short_name="clsfm-${dataset_name}-${name}"
-  local main_change="${name}-e${EPOCHS}"
+  local run_name="clsfm-${dataset_name}-${name}-e${EPOCHS}-bs${BATCH_SIZE}"
   local run_bs="$BATCH_SIZE"
   if (( run_bs > train_len )); then
     run_bs="$train_len"
@@ -110,9 +109,7 @@ run_one() {
     "trainer.compile_backend=${COMPILE_BACKEND}"
     "dataloader.batch_size=${run_bs}"
     "dataloader.num_workers=${NUM_WORKERS}"
-    "writer.auto_name=true"
-    "writer.short_name=${short_name}"
-    "writer.main_change=${main_change}"
+    "writer.run_name=${run_name}"
     "writer.description=classification_ucr_${dataset_name}"
     "writer.tags=[classification,fm,${dataset_name},${name}]"
   )
