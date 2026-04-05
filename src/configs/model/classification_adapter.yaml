@@ -1,7 +1,15 @@
-_target_: src.model.Chronos2ClassificationAdapter
+_target_: src.model.MomentClassificationAdapter
 model_size: "base"
-n_classes: 24
-in_channels: 18
+n_classes: 18
+in_channels: 52
 require_provider_model: true
 freeze_provider: true
 fail_on_provider_fallback: true
+finetune_mode: null
+# lora_rank: 8
+# lora_alpha: 16.0
+# lora_dropout: 0.05
+# lora_target_patterns:
+#   - "encoder.block.10.layer.*.self_attention.*"
+#   - "encoder.block.11.layer.*.self_attention.*"
+#   - "encoder.block.11.layer.2.mlp.*"
