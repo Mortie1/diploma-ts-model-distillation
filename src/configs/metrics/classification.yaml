@@ -1,6 +1,10 @@
 train:
   - _target_: src.metrics.ClassificationAccuracy
     name: Accuracy
+  - _target_: src.metrics.ClassificationMacroF1
+    name: MacroF1
 inference:
   - _target_: src.metrics.ClassificationAccuracy
     name: Accuracy
+  - _target_: src.metrics.ClassificationMacroF1
+    name: MacroF1
