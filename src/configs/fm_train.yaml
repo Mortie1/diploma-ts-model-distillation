@@ -2,7 +2,7 @@ defaults:
   - /model: classification_adapter
   - /writer: cometml
   - /metrics: classification
-  - /datasets: ucr_gunpoint
+  - /datasets: pamap2
   - /dataloader: smoke
   - /transforms: plain
   - /loss_function: classification
@@ -18,7 +18,7 @@ lr_scheduler:
   step_size: 200
 
 trainer:
-  log_step: 1
+  log_step: 10
   n_epochs: 10
   epoch_len: null
   amp_enabled: true
@@ -32,19 +32,18 @@ trainer:
   device_tensors: ["inputs", "targets"]
   resume_from: null
   device: auto
-  require_cuda: false
+  require_cuda: true
   override: true
-  monitor: "max test_Accuracy"
+  monitor: "max val_MacroF1"
   save_period: 1
   early_stop: ${trainer.n_epochs}
   save_dir: "saved"
   seed: 42
 
 writer:
-  run_name: "fm_train"
-  description: "Base FM classification run."
-  tags: ["classification", "fm", "train"]
+  run_name: "add lora to last 2 layers attention + mlp"
+  tags: ["classification", "chronos2", "pamap"]
 
 dataloader:
-  batch_size: 64
-  num_workers: 2
+  batch_size: 16
+  num_workers: 4
