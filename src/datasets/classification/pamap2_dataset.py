@@ -26,8 +26,9 @@ class PAMAP2Dataset(BaseDataset):
         targets: int class id
     """
 
-    # Canonical activity IDs used in PAMAP2 (0 = transient / no activity)
-    _ACTIVITY_IDS = [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 16, 17, 18, 19, 20, 24]
+    # Activity IDs present in PAMAP2 Protocol files used by this project.
+    # We intentionally keep labels compact (0..N-1) for classification heads.
+    _ACTIVITY_IDS = [1, 2, 3, 4, 5, 6, 7, 12, 13, 16, 17, 24]
     #  1	lying
     #  2	sitting
     #  3	standing
@@ -59,9 +60,8 @@ class PAMAP2Dataset(BaseDataset):
         split: str,
         window_length: int = 256,
         stride: int = 128,
-        feature_set: str = "acc_gyro",
-        include_hr: bool = False,
-        normalize: bool = True,
+        feature_set: str = "all",
+        include_hr: bool = True,
         min_majority_ratio: float = 0.6,
         cache_root: str | None = None,
         *args,
@@ -69,7 +69,9 @@ class PAMAP2Dataset(BaseDataset):
     ):
         split_key = split.lower()
         if split_key not in self._SPLIT_SUBJECTS:
-            raise ValueError(f"Unknown split `{split}`. Expected one of: train/val/test.")
+            raise ValueError(
+                f"Unknown split `{split}`. Expected one of: train/val/test."
+            )
         if window_length <= 0 or stride <= 0:
             raise ValueError("window_length and stride must be positive.")
 
@@ -79,9 +81,15 @@ class PAMAP2Dataset(BaseDataset):
             logger.info("PAMAP2 not found at %s, downloading...", protocol_dir)
             maybe_download_pamap2(root=root_path)
         if not protocol_dir.exists():
-            raise FileNotFoundError(f"PAMAP2 protocol directory not found: {protocol_dir}")
+            raise FileNotFoundError(
+                f"PAMAP2 protocol directory not found: {protocol_dir}"
+            )
 
-        cache_base = Path(cache_root) if cache_root else (root_path / ".cache" / "classification")
+        cache_base = (
+            Path(cache_root)
+            if cache_root
+            else (root_path / ".cache" / "classification")
+        )
         cfg = {
             "dataset": "pamap2",
             "split": split_key,
@@ -89,19 +97,23 @@ class PAMAP2Dataset(BaseDataset):
             "stride": int(stride),
             "feature_set": str(feature_set),
             "include_hr": bool(include_hr),
-            "normalize": bool(normalize),
             "min_majority_ratio": float(min_majority_ratio),
             "root": str(root_path.resolve()),
+            "label_schema_version": 2,
         }
         signature = cache_signature(cfg)
         cache_dir = cache_base / "pamap2" / split_key / signature
         cached_index = load_cached_index(cache_dir)
         if cached_index is not None:
             logger.info("PAMAP2 cache hit: split=%s path=%s", split_key, cache_dir)
-            self.labels = np.array([int(x["label"]) for x in cached_index], dtype=np.int64)
+            self.labels = np.array(
+                [int(x["label"]) for x in cached_index], dtype=np.int64
+            )
             super().__init__(index=cached_index, *args, **kwargs)
             return
-        logger.info("PAMAP2 cache miss: split=%s -> building cache at %s", split_key, cache_dir)
+        logger.info(
+            "PAMAP2 cache miss: split=%s -> building cache at %s", split_key, cache_dir
+        )
 
         samples: list[tuple[np.ndarray, int]] = []
 
@@ -144,12 +156,10 @@ class PAMAP2Dataset(BaseDataset):
                     continue
 
                 x = features[start:end].T  # [C, T]
-                if normalize:
-                    mean = x.mean(axis=1, keepdims=True)
-                    std = x.std(axis=1, keepdims=True) + 1e-6
-                    x = (x - mean) / std
 
-                samples.append((x.astype(np.float32), self._ACTIVITY_TO_INDEX[majority_label]))
+                samples.append(
+                    (x.astype(np.float32), self._ACTIVITY_TO_INDEX[majority_label])
+                )
 
         if not samples:
             raise RuntimeError(
@@ -179,12 +189,17 @@ class PAMAP2Dataset(BaseDataset):
         return features
 
     @staticmethod
-    def _select_features(features: np.ndarray, feature_set: str, include_hr: bool) -> np.ndarray:
+    def _select_features(
+        features: np.ndarray, feature_set: str, include_hr: bool
+    ) -> np.ndarray:
         fs = feature_set.lower()
         n_feat = features.shape[1]
 
         # Features after removing timestamp/activity:
         # [0]=heart_rate, then 3 IMU blocks (17 each): hand/chest/ankle.
+        if fs in {"hr", "heart_rate", "heartbeat"}:
+            return features[:, [0]]
+
         if fs == "all":
             return features
 
