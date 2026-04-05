@@ -39,7 +39,7 @@ trainer:
   device: auto
   require_cuda: false
   override: true
-  monitor: "max test_Accuracy"
+  monitor: "max val_MacroF1"
   save_period: 1
   early_stop: ${trainer.n_epochs}
   save_dir: "saved"
