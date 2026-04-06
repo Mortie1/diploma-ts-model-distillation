@@ -38,3 +38,29 @@ class ClassificationMacroF1(BaseMetric):
             f1_sum += f1
 
         return f1_sum / float(n_classes)
+
+
+class ClassificationMicroF1(BaseMetric):
+    def __call__(
+        self,
+        logits: torch.Tensor,
+        targets: torch.Tensor,
+        **kwargs,
+    ):
+        pred = logits.argmax(dim=-1)
+        n_classes = int(logits.shape[-1])
+
+        tp_total = 0.0
+        fp_total = 0.0
+        fn_total = 0.0
+
+        for cls_idx in range(n_classes):
+            cls = torch.tensor(cls_idx, device=pred.device)
+            tp_total += ((pred == cls) & (targets == cls)).sum().item()
+            fp_total += ((pred == cls) & (targets != cls)).sum().item()
+            fn_total += ((pred != cls) & (targets == cls)).sum().item()
+
+        denom = 2.0 * tp_total + fp_total + fn_total
+        if denom == 0.0:
+            return 0.0
+        return (2.0 * tp_total) / denom
