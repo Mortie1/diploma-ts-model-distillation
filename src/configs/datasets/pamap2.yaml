@@ -1,0 +1,30 @@
+train:
+  _target_: src.datasets.PAMAP2Dataset
+  root: "data/raw/pamap2"
+  split: "train"
+  window_length: 512
+  stride: 256
+  feature_set: "all"
+  include_hr: true
+  min_majority_ratio: 0.7
+  instance_transforms: ${transforms.instance_transforms.train}
+val:
+  _target_: src.datasets.PAMAP2Dataset
+  root: "data/raw/pamap2"
+  split: "val"
+  window_length: 512
+  stride: 256
+  feature_set: "all"
+  include_hr: true
+  min_majority_ratio: 0.7
+  instance_transforms: ${transforms.instance_transforms.inference}
+test:
+  _target_: src.datasets.PAMAP2Dataset
+  root: "data/raw/pamap2"
+  split: "test"
+  window_length: 512
+  stride: 256
+  feature_set: "all"
+  include_hr: true
+  min_majority_ratio: 0.7
+  instance_transforms: ${transforms.instance_transforms.inference}

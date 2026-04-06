@@ -16,21 +16,51 @@ class ClassificationAccuracy(BaseMetric):
         return (pred == targets).float().mean().item()
 
 
-class ForecastingMAE(BaseMetric):
+class ClassificationMacroF1(BaseMetric):
     def __call__(
         self,
-        forecast: torch.Tensor,
+        logits: torch.Tensor,
         targets: torch.Tensor,
         **kwargs,
     ):
-        return (forecast - targets).abs().mean().item()
+        pred = logits.argmax(dim=-1)
+        n_classes = int(logits.shape[-1])
+        f1_sum = 0.0
+
+        for cls_idx in range(n_classes):
+            cls = torch.tensor(cls_idx, device=pred.device)
+            tp = ((pred == cls) & (targets == cls)).sum().item()
+            fp = ((pred == cls) & (targets != cls)).sum().item()
+            fn = ((pred != cls) & (targets == cls)).sum().item()
+
+            denom = 2 * tp + fp + fn
+            f1 = 0.0 if denom == 0 else (2.0 * tp) / float(denom)
+            f1_sum += f1
+
+        return f1_sum / float(n_classes)
 
 
-class ForecastingRMSE(BaseMetric):
+class ClassificationMicroF1(BaseMetric):
     def __call__(
         self,
-        forecast: torch.Tensor,
+        logits: torch.Tensor,
         targets: torch.Tensor,
         **kwargs,
     ):
-        return torch.sqrt(torch.mean((forecast - targets) ** 2)).item()
+        pred = logits.argmax(dim=-1)
+        n_classes = int(logits.shape[-1])
+
+        tp_total = 0.0
+        fp_total = 0.0
+        fn_total = 0.0
+
+        for cls_idx in range(n_classes):
+            cls = torch.tensor(cls_idx, device=pred.device)
+            tp_total += ((pred == cls) & (targets == cls)).sum().item()
+            fp_total += ((pred == cls) & (targets != cls)).sum().item()
+            fn_total += ((pred != cls) & (targets == cls)).sum().item()
+
+        denom = 2.0 * tp_total + fp_total + fn_total
+        if denom == 0.0:
+            return 0.0
+        return (2.0 * tp_total) / denom

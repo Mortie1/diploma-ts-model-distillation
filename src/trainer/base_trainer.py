@@ -69,6 +69,21 @@ class BaseTrainer:
         self.log_step = config.trainer.get("log_step", 50)
 
         self.model = model
+        total_params = sum(p.numel() for p in self.model.parameters())
+        trainable_params = sum(
+            p.numel() for p in self.model.parameters() if p.requires_grad
+        )
+        frozen_params = total_params - trainable_params
+        trainable_ratio = (
+            (100.0 * trainable_params / total_params) if total_params > 0 else 0.0
+        )
+        self.logger.info(
+            "Model params: trainable=%d | frozen=%d | total=%d | trainable_ratio=%.2f%%",
+            trainable_params,
+            frozen_params,
+            total_params,
+            trainable_ratio,
+        )
         self.criterion = criterion
         self.optimizer = optimizer
         self.lr_scheduler = lr_scheduler
@@ -202,7 +217,7 @@ class BaseTrainer:
 
             # print logged information to the screen
             for key, value in logs.items():
-                self.logger.info(f"    {key:15s}: {value}")
+                self.logger.info("    {:15s}: {}".format(key, value))
 
             # evaluate model performance according to configured metric,
             # save best checkpoint as model_best
@@ -547,7 +562,10 @@ class BaseTrainer:
                 "of the checkpoint. This may yield an exception when state_dict is loaded."
             )
         self.model.load_state_dict(checkpoint["state_dict"])
-        if self.distillation is not None and checkpoint.get("distillation_state_dict") is not None:
+        if (
+            self.distillation is not None
+            and checkpoint.get("distillation_state_dict") is not None
+        ):
             self.distillation.load_state_dict(checkpoint["distillation_state_dict"])
 
         # load optimizer state from checkpoint only when optimizer type is not changed.
@@ -591,5 +609,8 @@ class BaseTrainer:
         else:
             self.model.load_state_dict(checkpoint)
 
-        if self.distillation is not None and checkpoint.get("distillation_state_dict") is not None:
+        if (
+            self.distillation is not None
+            and checkpoint.get("distillation_state_dict") is not None
+        ):
             self.distillation.load_state_dict(checkpoint["distillation_state_dict"])

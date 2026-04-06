@@ -1,0 +1,18 @@
+train:
+  _target_: src.datasets.CWRUBearingDataset
+  root: "data/raw/cwru_bearing"
+  split: "train"
+  normalize: true
+  instance_transforms: ${transforms.instance_transforms.train}
+val:
+  _target_: src.datasets.CWRUBearingDataset
+  root: "data/raw/cwru_bearing"
+  split: "test"
+  normalize: true
+  instance_transforms: ${transforms.instance_transforms.inference}
+test:
+  _target_: src.datasets.CWRUBearingDataset
+  root: "data/raw/cwru_bearing"
+  split: "test"
+  normalize: true
+  instance_transforms: ${transforms.instance_transforms.inference}

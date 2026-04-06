@@ -34,7 +34,7 @@ trainer:
   device: auto
   require_cuda: false
   override: true
-  monitor: "max test_Accuracy"
+  monitor: "max val_MacroF1"
   save_period: 1
   early_stop: ${trainer.n_epochs}
   save_dir: "saved"
@@ -42,9 +42,6 @@ trainer:
 
 writer:
   run_name: "fm_classification_train"
-  auto_name: true
-  short_name: "classification-fm"
-  main_change: "base"
   description: "Base FM classification run."
   tags: ["classification", "fm", "train"]
 

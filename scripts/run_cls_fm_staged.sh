@@ -19,16 +19,16 @@ COMPILE_BACKEND="${COMPILE_BACKEND:-inductor}"
 UCR_ROOT="${UCR_ROOT:-data/raw/ucr}"
 
 RESULTS_TSV="$OUT_DIR/results.tsv"
-echo -e "dataset\trun\tmodel_target\tmodel_id\tn_classes\ttrain_len\tbatch_size\tstatus\tbest_test_Accuracy\tcomet_url\tlog_file" > "$RESULTS_TSV"
+echo -e "dataset\trun\tmodel_target\tmodel_size\tn_classes\ttrain_len\tbatch_size\tstatus\tbest_test_Accuracy\tcomet_url\tlog_file" > "$RESULTS_TSV"
 
-# run_name|model_target|model_id
+# run_name|model_target|model_size
 RUNS=(
-  "moment_small_cls|src.model.MomentClassificationAdapter|AutonLab/MOMENT-1-small"
-  "moment_base_cls|src.model.MomentClassificationAdapter|AutonLab/MOMENT-1-base"
-  "moment_large_cls|src.model.MomentClassificationAdapter|AutonLab/MOMENT-1-large"
-  "chronos2_cls|src.model.Chronos2ClassificationAdapter|amazon/chronos-2"
-  "tirex_cls|src.model.TiRexClassificationAdapter|NX-AI/TiRex"
-  "tspulse_cls|src.model.TSPulseClassificationAdapter|ibm-granite/granite-timeseries-tspulse-r1"
+  "moment_small_cls|src.model.MomentClassificationAdapter|small"
+  "moment_base_cls|src.model.MomentClassificationAdapter|base"
+  "moment_large_cls|src.model.MomentClassificationAdapter|large"
+  "chronos2_cls|src.model.Chronos2ClassificationAdapter|base"
+  "tirex_cls|src.model.TiRexClassificationAdapter|base"
+  "tspulse_cls|src.model.TSPulseClassificationAdapter|r1"
 )
 
 DATASETS=(
@@ -77,13 +77,12 @@ run_one() {
   local dataset_name="$1"
   local name="$2"
   local model_target="$3"
-  local model_id="$4"
+  local model_size="$4"
   local n_classes="$5"
   local train_len="$6"
 
   local log_file="$OUT_DIR/${dataset_name}_${name}.log"
-  local short_name="clsfm-${dataset_name}-${name}"
-  local main_change="${name}-e${EPOCHS}"
+  local run_name="clsfm-${dataset_name}-${name}-e${EPOCHS}-bs${BATCH_SIZE}"
   local run_bs="$BATCH_SIZE"
   if (( run_bs > train_len )); then
     run_bs="$train_len"
@@ -93,7 +92,7 @@ run_one() {
     .venv/bin/python train.py
     -cn=fm_classification_train
     "model._target_=${model_target}"
-    "model.model_id=${model_id}"
+    "model.model_size=${model_size}"
     "model.n_classes=${n_classes}"
     "model.fail_on_provider_fallback=true"
     "datasets.train.root=${UCR_ROOT}"
@@ -110,9 +109,7 @@ run_one() {
     "trainer.compile_backend=${COMPILE_BACKEND}"
     "dataloader.batch_size=${run_bs}"
     "dataloader.num_workers=${NUM_WORKERS}"
-    "writer.auto_name=true"
-    "writer.short_name=${short_name}"
-    "writer.main_change=${main_change}"
+    "writer.run_name=${run_name}"
     "writer.description=classification_ucr_${dataset_name}"
     "writer.tags=[classification,fm,${dataset_name},${name}]"
   )
@@ -140,7 +137,7 @@ run_one() {
   comet_url="$(echo "$parsed" | awk '{print $2}')"
 
   printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
-    "$dataset_name" "$name" "$model_target" "$model_id" "$n_classes" "$train_len" "$run_bs" "$status" "$best_acc" "$comet_url" "$log_file" >> "$RESULTS_TSV"
+    "$dataset_name" "$name" "$model_target" "$model_size" "$n_classes" "$train_len" "$run_bs" "$status" "$best_acc" "$comet_url" "$log_file" >> "$RESULTS_TSV"
 }
 
 for dataset_name in "${DATASETS[@]}"; do
@@ -148,8 +145,8 @@ for dataset_name in "${DATASETS[@]}"; do
   train_len="$(echo "$stats" | awk '{print $1}')"
   n_classes="$(echo "$stats" | awk '{print $2}')"
   for row in "${RUNS[@]}"; do
-    IFS='|' read -r name model_target model_id <<< "$row"
-    run_one "$dataset_name" "$name" "$model_target" "$model_id" "$n_classes" "$train_len"
+    IFS='|' read -r name model_target model_size <<< "$row"
+    run_one "$dataset_name" "$name" "$model_target" "$model_size" "$n_classes" "$train_len"
   done
 done
 

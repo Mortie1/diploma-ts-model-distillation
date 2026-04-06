@@ -1,1 +1,0 @@
-ETT_DEFAULT_COLUMNS = ["HUFL", "HULL", "MUFL", "MULL", "LUFL", "LULL", "OT"]

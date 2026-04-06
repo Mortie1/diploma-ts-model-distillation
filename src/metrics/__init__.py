@@ -1,13 +1,13 @@
 from src.metrics.example import ExampleMetric
 from src.metrics.task_metrics import (
     ClassificationAccuracy,
-    ForecastingMAE,
-    ForecastingRMSE,
+    ClassificationMacroF1,
+    ClassificationMicroF1,
 )
 
 __all__ = [
     "ExampleMetric",
     "ClassificationAccuracy",
-    "ForecastingMAE",
-    "ForecastingRMSE",
+    "ClassificationMacroF1",
+    "ClassificationMicroF1",
 ]

@@ -130,29 +130,20 @@ class Inferencer(BaseTrainer):
         # Some saving logic. This is an example
         # Use if you need to save predictions on disk
 
-        if "logits" in batch:
-            batch_size = batch["logits"].shape[0]
-        elif "forecast" in batch:
-            batch_size = batch["forecast"].shape[0]
-        else:
-            raise KeyError("Expected `logits` or `forecast` in model outputs")
+        if "logits" not in batch:
+            raise KeyError("Expected `logits` in model outputs")
+        batch_size = batch["logits"].shape[0]
         current_id = batch_idx * batch_size
 
         for i in range(batch_size):
             output_id = current_id + i
-            if "logits" in batch:
-                logits = batch["logits"][i].clone()
-                label = batch["targets"][i].clone()
-                output = {
-                    "pred_label": logits.argmax(dim=-1),
-                    "label": label,
-                    "logits": logits,
-                }
-            else:
-                output = {
-                    "forecast": batch["forecast"][i].clone(),
-                    "targets": batch["targets"][i].clone(),
-                }
+            logits = batch["logits"][i].clone()
+            label = batch["targets"][i].clone()
+            output = {
+                "pred_label": logits.argmax(dim=-1),
+                "label": label,
+                "logits": logits,
+            }
 
             if self.save_path is not None:
                 # you can use safetensors or other lib here

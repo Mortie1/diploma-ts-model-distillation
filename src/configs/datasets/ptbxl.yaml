@@ -1,0 +1,21 @@
+train:
+  _target_: src.datasets.PTBXLDataset
+  root: "data/raw/ptbxl"
+  split: "train"
+  sampling_rate: 100
+  label_mode: "diagnostic_superclass"
+  instance_transforms: ${transforms.instance_transforms.train}
+val:
+  _target_: src.datasets.PTBXLDataset
+  root: "data/raw/ptbxl"
+  split: "val"
+  sampling_rate: 100
+  label_mode: "diagnostic_superclass"
+  instance_transforms: ${transforms.instance_transforms.inference}
+test:
+  _target_: src.datasets.PTBXLDataset
+  root: "data/raw/ptbxl"
+  split: "test"
+  sampling_rate: 100
+  label_mode: "diagnostic_superclass"
+  instance_transforms: ${transforms.instance_transforms.inference}

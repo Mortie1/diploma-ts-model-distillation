@@ -9,11 +9,12 @@ from torch import nn
 
 class BaseClassificationAdapter(nn.Module, ABC):
     provider_name: str = "placeholder"
+    model_size_to_id: dict[str, str] = {}
 
     def __init__(
         self,
-        model_id: str,
-        n_classes: int,
+        model_size: str,
+        n_classes: int = 2,
         in_channels: int = 1,
         require_provider_model: bool = False,
         freeze_provider: bool = True,
@@ -21,7 +22,8 @@ class BaseClassificationAdapter(nn.Module, ABC):
     ):
         super().__init__()
         self.provider = self.provider_name
-        self.model_id = model_id
+        self.model_size = model_size
+        self.model_id = self._resolve_model_id(model_size)
         self.n_classes = n_classes
         self.in_channels = in_channels
         self.require_provider_model = require_provider_model
@@ -36,22 +38,31 @@ class BaseClassificationAdapter(nn.Module, ABC):
                 f"Failed to initialize provider `{self.provider}` with model_id `{self.model_id}`."
             )
 
-        if self.freeze_provider and self.provider_model is not None and isinstance(self.provider_model, nn.Module):
+        if (
+            self.freeze_provider
+            and self.provider_model is not None
+            and isinstance(self.provider_model, nn.Module)
+        ):
             for p in self.provider_model.parameters():
                 p.requires_grad = False
-
-        self.encoder = nn.Sequential(
-            nn.Conv1d(in_channels, 64, kernel_size=7, padding=3),
-            nn.GELU(),
-            nn.Conv1d(64, 128, kernel_size=5, padding=2),
-            nn.GELU(),
-            nn.AdaptiveAvgPool1d(1),
-        )
-        self.head = nn.Linear(128, n_classes)
 
     @abstractmethod
     def _init_provider_model(self):
         raise NotImplementedError
+
+    def _resolve_model_id(self, model_size: str) -> str:
+        size_key = str(model_size).lower()
+        if size_key not in self.model_size_to_id:
+            supported = ", ".join(sorted(self.model_size_to_id.keys())) or "<none>"
+            raise ValueError(
+                f"Unsupported model_size `{model_size}` for provider `{self.provider}`. "
+                f"Supported sizes: {supported}"
+            )
+        resolved = self.model_size_to_id[size_key]
+        print(
+            f"[{self.__class__.__name__}] Resolved model_size `{model_size}` -> model_id `{resolved}`."
+        )
+        return resolved
 
     def _warn_provider_fallback(self):
         if self.fail_on_provider_fallback:
@@ -61,8 +72,8 @@ class BaseClassificationAdapter(nn.Module, ABC):
             )
         if not self._provider_warning_printed:
             print(
-                f"[{self.__class__.__name__}] Provider `{self.provider}` unavailable or failed; "
-                "using trainable local encoder only."
+                f"[{self.__class__.__name__}] Provider `{self.provider}` unavailable or failed, "
+                "no local fallback branch is available."
             )
             self._provider_warning_printed = True
 
@@ -70,16 +81,17 @@ class BaseClassificationAdapter(nn.Module, ABC):
         return None
 
     def forward(self, inputs: torch.Tensor, **batch):
-        pooled = self.encoder(inputs).squeeze(-1)
-        logits = self.head(pooled)
         provider_logits = self._run_provider(inputs)
         if provider_logits is None:
             self._warn_provider_fallback()
-        else:
-            logits = logits + provider_logits.to(logits.device, dtype=logits.dtype)
+            raise RuntimeError(
+                f"Provider `{self.provider}` did not return logits. "
+                "This adapter is provider-only."
+            )
+        logits = provider_logits
         return {
             "logits": logits,
-            "student_hidden": pooled,
+            "student_hidden": logits,
             "student_pred": logits,
         }
 
