@@ -41,9 +41,9 @@ trainer:
   seed: 42
 
 writer:
-  run_name: "add lora to last 2 layers attention + mlp"
-  tags: ["classification", "chronos2", "pamap"]
+  run_name: "increase bs to 64"
+  tags: ["classification", "moment", "pamap"]
 
 dataloader:
-  batch_size: 16
+  batch_size: 64
   num_workers: 4

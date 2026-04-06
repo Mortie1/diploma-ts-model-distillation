@@ -1,11 +1,11 @@
 _target_: src.model.MomentClassificationAdapter
-model_size: "base"
+model_size: "small"
 n_classes: 18
 in_channels: 52
 require_provider_model: true
 freeze_provider: true
 fail_on_provider_fallback: true
-finetune_mode: null
+# finetune_mode: null
 # lora_rank: 8
 # lora_alpha: 16.0
 # lora_dropout: 0.05
