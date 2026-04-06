@@ -1,4 +1,10 @@
-from src.datasets.classification import PAMAP2Dataset, UCRDataset
+from src.datasets.classification import (
+    CWRUBearingDataset,
+    InsectWingbeatDataset,
+    PAMAP2Dataset,
+    PTBXLDataset,
+    UCRDataset,
+)
 from src.datasets.example import ExampleDataset
 from src.datasets.smoke_classification import (
     SmokeClassificationDataset,
@@ -7,7 +13,10 @@ from src.datasets.smoke_classification import (
 
 __all__ = [
     "ExampleDataset",
+    "CWRUBearingDataset",
+    "InsectWingbeatDataset",
     "PAMAP2Dataset",
+    "PTBXLDataset",
     "SmokeClassificationDataset",
     "SyntheticClassificationDataset",
     "UCRDataset",
