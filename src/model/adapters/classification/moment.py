@@ -15,6 +15,10 @@ class MomentClassificationAdapter(BaseClassificationAdapter):
         "large": "AutonLab/MOMENT-1-large",
     }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._unfreeze_classification_head()
+
     def _init_provider_model(self):
         try:
             from momentfm import MOMENTPipeline
@@ -52,3 +56,12 @@ class MomentClassificationAdapter(BaseClassificationAdapter):
             except Exception:
                 continue
         return None
+
+    def _unfreeze_classification_head(self):
+        if self.provider_model is None:
+            return
+        head = getattr(self.provider_model, "head", None)
+        if head is None:
+            return
+        for p in head.parameters():
+            p.requires_grad = True
