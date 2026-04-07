@@ -11,5 +11,7 @@ class TimesFMHFClassificationAdapter(BaseClassificationAdapter):
     }
 
     def _init_provider_model(self):
-        # TimesFM-HF checkpoint is used as a frozen/external backbone for classification.
-        return None
+        raise RuntimeError(
+            "TimesFMHFClassificationAdapter is not implemented: "
+            "TimesFM 2.5 HF checkpoint is not wired to a trainable classification backend in this codebase."
+        )

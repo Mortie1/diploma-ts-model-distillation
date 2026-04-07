@@ -18,7 +18,9 @@ class TiRexClassificationAdapter(BaseClassificationAdapter):
         super().__init__(*args, **kwargs)
         self.provider_head: Optional[nn.Linear] = None
         if self.provider_model is not None:
-            hidden_dim = int(getattr(self.provider_model.out_norm, "weight", torch.empty(0)).numel())
+            hidden_dim = int(
+                getattr(self.provider_model.out_norm, "weight", torch.empty(0)).numel()
+            )
             if hidden_dim > 0:
                 self.provider_head = nn.Linear(hidden_dim, self.n_classes)
 
@@ -27,8 +29,10 @@ class TiRexClassificationAdapter(BaseClassificationAdapter):
             from tirex import load_model
 
             return load_model(self.model_id)
-        except Exception:
-            return None
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to initialize TiRex provider for model_id `{self.model_id}`."
+            ) from e
 
     def _run_provider(self, x: torch.Tensor) -> Optional[torch.Tensor]:
         if self.provider_model is None or self.provider_head is None:
@@ -50,6 +54,9 @@ class TiRexClassificationAdapter(BaseClassificationAdapter):
             # [B, tokens, hidden]
             features = embeds.mean(dim=1)
         else:
-            return None
+            raise RuntimeError(
+                f"Unexpected TiRex embedding shape: {tuple(embeds.shape)}. "
+                "Expected rank 3 or 4 tensor."
+            )
 
         return self.provider_head(features)

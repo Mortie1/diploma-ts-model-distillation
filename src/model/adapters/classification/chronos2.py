@@ -83,8 +83,10 @@ class Chronos2ClassificationAdapter(BaseClassificationAdapter):
             pipeline = Chronos2Pipeline.from_pretrained(self.model_id)
             self.provider_pipeline = pipeline
             return pipeline.model
-        except Exception:
-            return None
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to initialize Chronos2 provider for model_id `{self.model_id}`."
+            ) from e
 
     @staticmethod
     def _normalize_target_patterns(

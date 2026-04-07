@@ -10,5 +10,7 @@ class TimesFMClassificationAdapter(BaseClassificationAdapter):
     }
 
     def _init_provider_model(self):
-        # TimesFM is initialized for representation transfer into classification.
-        return None
+        raise RuntimeError(
+            "TimesFMClassificationAdapter is not implemented: "
+            "TimesFM 2.0 checkpoint is not wired to a trainable classification backend in this codebase."
+        )
