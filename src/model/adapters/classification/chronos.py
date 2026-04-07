@@ -14,5 +14,7 @@ class ChronosClassificationAdapter(BaseClassificationAdapter):
     }
 
     def _init_provider_model(self):
-        # Chronos is initialized for representation transfer into classification.
-        return None
+        raise RuntimeError(
+            "ChronosClassificationAdapter is not implemented: "
+            "Chronos T5 pipeline does not provide a trainable classification backend in this codebase."
+        )

@@ -245,6 +245,8 @@ class BaseTrainer:
         self.is_train = True
         self.model.train()
         self.train_metrics.reset()
+        epoch_logits = []
+        epoch_targets = []
         self.writer.set_step((epoch - 1) * self.epoch_len)
         self.writer.add_scalar("epoch", epoch)
         for batch_idx, batch in enumerate(
@@ -262,6 +264,13 @@ class BaseTrainer:
                     continue
                 else:
                     raise e
+
+            if "logits" in batch and "targets" in batch:
+                logits = batch["logits"]
+                targets = batch["targets"]
+                if self._is_classification_logits_targets(logits, targets):
+                    epoch_logits.append(logits.detach().cpu())
+                    epoch_targets.append(targets.detach().cpu())
 
             self.train_metrics.update("grad_norm", self._get_grad_norm())
 
@@ -286,6 +295,12 @@ class BaseTrainer:
                 break
 
         logs = last_train_metrics
+        logs = self._overwrite_epoch_classification_metrics(
+            logs=logs,
+            metric_defs=self.metrics["train"],
+            epoch_logits=epoch_logits,
+            epoch_targets=epoch_targets,
+        )
 
         # Run val/test
         for part, dataloader in self.evaluation_dataloaders.items():
@@ -308,6 +323,8 @@ class BaseTrainer:
         self.is_train = False
         self.model.eval()
         self.evaluation_metrics.reset()
+        epoch_logits = []
+        epoch_targets = []
         with torch.no_grad():
             for batch_idx, batch in tqdm(
                 enumerate(dataloader),
@@ -318,13 +335,85 @@ class BaseTrainer:
                     batch,
                     metrics=self.evaluation_metrics,
                 )
+                if "logits" in batch and "targets" in batch:
+                    logits = batch["logits"]
+                    targets = batch["targets"]
+                    if self._is_classification_logits_targets(logits, targets):
+                        epoch_logits.append(logits.detach().cpu())
+                        epoch_targets.append(targets.detach().cpu())
             self.writer.set_step(epoch * self.epoch_len, part)
             self._log_scalars(self.evaluation_metrics)
             self._log_batch(
                 batch_idx, batch, part
             )  # log only the last batch during inference
 
-        return self.evaluation_metrics.result()
+        logs = self.evaluation_metrics.result()
+        return self._overwrite_epoch_classification_metrics(
+            logs=logs,
+            metric_defs=self.metrics["inference"],
+            epoch_logits=epoch_logits,
+            epoch_targets=epoch_targets,
+        )
+
+    @staticmethod
+    def _is_classification_logits_targets(logits, targets):
+        return (
+            isinstance(logits, torch.Tensor)
+            and isinstance(targets, torch.Tensor)
+            and logits.ndim == 2
+            and targets.ndim == 1
+            and logits.shape[0] == targets.shape[0]
+        )
+
+    @staticmethod
+    def _classification_scores_from_logits_targets(logits, targets):
+        pred = logits.argmax(dim=-1)
+        acc = (pred == targets).float().mean().item()
+
+        labels = torch.unique(torch.cat([targets.view(-1), pred.view(-1)]))
+        if labels.numel() == 0:
+            return {"Accuracy": 0.0, "MacroF1": 0.0, "MicroF1": 0.0}
+
+        macro_f1_sum = 0.0
+        tp_total = 0.0
+        fp_total = 0.0
+        fn_total = 0.0
+
+        for cls in labels:
+            tp = ((pred == cls) & (targets == cls)).sum().item()
+            fp = ((pred == cls) & (targets != cls)).sum().item()
+            fn = ((pred != cls) & (targets == cls)).sum().item()
+            denom = 2 * tp + fp + fn
+            macro_f1_sum += 0.0 if denom == 0 else (2.0 * tp) / float(denom)
+            tp_total += tp
+            fp_total += fp
+            fn_total += fn
+
+        micro_denom = 2.0 * tp_total + fp_total + fn_total
+        micro_f1 = 0.0 if micro_denom == 0.0 else (2.0 * tp_total) / micro_denom
+
+        return {
+            "Accuracy": acc,
+            "MacroF1": macro_f1_sum / float(labels.numel()),
+            "MicroF1": micro_f1,
+        }
+
+    def _overwrite_epoch_classification_metrics(
+        self, logs, metric_defs, epoch_logits, epoch_targets
+    ):
+        if not epoch_logits or not epoch_targets:
+            return logs
+
+        logits = torch.cat(epoch_logits, dim=0)
+        targets = torch.cat(epoch_targets, dim=0)
+        cls_scores = self._classification_scores_from_logits_targets(logits, targets)
+
+        for met in metric_defs:
+            name = str(getattr(met, "name", "")).strip()
+            if name in cls_scores:
+                logs[name] = cls_scores[name]
+
+        return logs
 
     def _monitor_performance(self, logs, not_improved_count):
         """

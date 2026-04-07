@@ -24,11 +24,12 @@ class ClassificationMacroF1(BaseMetric):
         **kwargs,
     ):
         pred = logits.argmax(dim=-1)
-        n_classes = int(logits.shape[-1])
-        f1_sum = 0.0
+        labels = torch.unique(torch.cat([targets.view(-1), pred.view(-1)]))
+        if labels.numel() == 0:
+            return 0.0
 
-        for cls_idx in range(n_classes):
-            cls = torch.tensor(cls_idx, device=pred.device)
+        f1_sum = 0.0
+        for cls in labels:
             tp = ((pred == cls) & (targets == cls)).sum().item()
             fp = ((pred == cls) & (targets != cls)).sum().item()
             fn = ((pred != cls) & (targets == cls)).sum().item()
@@ -37,7 +38,7 @@ class ClassificationMacroF1(BaseMetric):
             f1 = 0.0 if denom == 0 else (2.0 * tp) / float(denom)
             f1_sum += f1
 
-        return f1_sum / float(n_classes)
+        return f1_sum / float(labels.numel())
 
 
 class ClassificationMicroF1(BaseMetric):
@@ -48,14 +49,15 @@ class ClassificationMicroF1(BaseMetric):
         **kwargs,
     ):
         pred = logits.argmax(dim=-1)
-        n_classes = int(logits.shape[-1])
+        labels = torch.unique(torch.cat([targets.view(-1), pred.view(-1)]))
+        if labels.numel() == 0:
+            return 0.0
 
         tp_total = 0.0
         fp_total = 0.0
         fn_total = 0.0
 
-        for cls_idx in range(n_classes):
-            cls = torch.tensor(cls_idx, device=pred.device)
+        for cls in labels:
             tp_total += ((pred == cls) & (targets == cls)).sum().item()
             fp_total += ((pred == cls) & (targets != cls)).sum().item()
             fn_total += ((pred != cls) & (targets == cls)).sum().item()

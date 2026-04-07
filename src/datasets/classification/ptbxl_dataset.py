@@ -162,7 +162,14 @@ class PTBXLDataset(BaseDataset):
                     "true",
                 }:
                     continue
-                code = str(row.get("scp_code", "")).strip()
+                # PTB-XL `scp_statements.csv` can store SCP code under different
+                # headers depending on CSV export:
+                # - `scp_code`
+                # - `Unnamed: 0` (pandas index export)
+                # - empty header `` (index column in some public mirrors)
+                code = str(
+                    row.get("scp_code") or row.get("Unnamed: 0") or row.get("") or ""
+                ).strip()
                 superclass = str(row.get("diagnostic_class", "")).strip()
                 if code and superclass:
                     mapping[code] = superclass
