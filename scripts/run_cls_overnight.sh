@@ -67,9 +67,19 @@ from src.datasets.classification.cwru_bearing_dataset import CWRUBearingDataset
 def meta_insect():
     root = Path("data/raw/ucr")
     name = "InsectWingbeatSound"
-    train_file = root / name / f"{name}_TRAIN.tsv"
-    if not train_file.exists():
+    candidates = [
+        root / name / f"{name}_TRAIN.tsv",
+        root / name / f"{name}_TRAIN.txt",
+        root / f"{name}_TRAIN.tsv",
+        root / f"{name}_TRAIN.txt",
+    ]
+    train_file = next((p for p in candidates if p.exists()), None)
+    if train_file is None:
         maybe_download_ucr(dataset_name=name, root=root)
+        train_file = next((p for p in candidates if p.exists()), None)
+    if train_file is None:
+        checked = ", ".join(str(p) for p in candidates)
+        raise FileNotFoundError(f"Could not find InsectWingbeat train split. Checked: {checked}")
     arr = np.loadtxt(train_file, delimiter=None)
     y = arr[:, 0].astype(np.int64)
     return len(y), len(np.unique(y)), 1
@@ -100,7 +110,7 @@ def meta_ptbxl():
         for r in reader:
             if str(r.get("diagnostic", "")).strip() not in {"1", "1.0", "True", "true"}:
                 continue
-            code = str(r.get("scp_code", "")).strip()
+            code = str(r.get("scp_code") or r.get("Unnamed: 0") or r.get("") or "").strip()
             superc = str(r.get("diagnostic_class", "")).strip()
             if code and superc:
                 code_to_super[code] = superc
