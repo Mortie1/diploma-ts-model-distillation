@@ -12,7 +12,7 @@ from src.datasets.classification.cache_utils import (
     load_tensor_file,
     materialize_tensor_cache,
 )
-from src.datasets.download import maybe_download_ucr
+from src.datasets.download import ensure_ucr_dataset_layout, maybe_download_ucr
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,7 @@ class UCRDataset(BaseDataset):
         **kwargs,
     ):
         root_path = Path(root)
+        ensure_ucr_dataset_layout(dataset_name=dataset_name, root=root_path)
         split_key = split.lower()
         split_name = "TRAIN" if split_key == "train" else "TEST"
         candidates = [
@@ -45,9 +46,15 @@ class UCRDataset(BaseDataset):
             file_path = next((p for p in candidates if p.exists()), None)
             if file_path is None:
                 checked = ", ".join(str(p) for p in candidates)
-                raise FileNotFoundError(f"Could not find UCR split file. Checked: {checked}")
+                raise FileNotFoundError(
+                    f"Could not find UCR split file. Checked: {checked}"
+                )
 
-        cache_base = Path(cache_root) if cache_root else (root_path / ".cache" / "classification")
+        cache_base = (
+            Path(cache_root)
+            if cache_root
+            else (root_path / ".cache" / "classification")
+        )
         cfg = {
             "dataset": "ucr",
             "dataset_name": dataset_name,
@@ -62,11 +69,23 @@ class UCRDataset(BaseDataset):
 
         cached_index = load_cached_index(cache_dir)
         if cached_index is not None:
-            logger.info("UCR cache hit: dataset=%s split=%s path=%s", dataset_name, split_key, cache_dir)
-            self.labels = np.array([int(x["label"]) for x in cached_index], dtype=np.int64)
+            logger.info(
+                "UCR cache hit: dataset=%s split=%s path=%s",
+                dataset_name,
+                split_key,
+                cache_dir,
+            )
+            self.labels = np.array(
+                [int(x["label"]) for x in cached_index], dtype=np.int64
+            )
             super().__init__(index=cached_index, *args, **kwargs)
             return
-        logger.info("UCR cache miss: dataset=%s split=%s -> building cache at %s", dataset_name, split_key, cache_dir)
+        logger.info(
+            "UCR cache miss: dataset=%s split=%s -> building cache at %s",
+            dataset_name,
+            split_key,
+            cache_dir,
+        )
 
         # Many UCR files are tab-separated; some exports are plain whitespace text.
         arr = np.loadtxt(file_path, delimiter=None)
@@ -84,7 +103,10 @@ class UCRDataset(BaseDataset):
 
         index = materialize_tensor_cache(
             cache_dir=cache_dir,
-            samples_with_labels=((self.samples[i][None, :], int(self.labels[i])) for i in range(len(self.labels))),
+            samples_with_labels=(
+                (self.samples[i][None, :], int(self.labels[i]))
+                for i in range(len(self.labels))
+            ),
             meta={**cfg, "signature": signature, "n_samples": int(len(self.labels))},
             total=int(len(self.labels)),
             progress_desc=f"caching ucr/{dataset_name}/{split_key}",

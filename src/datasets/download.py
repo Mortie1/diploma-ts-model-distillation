@@ -42,14 +42,40 @@ def download_bytes(url: str) -> bytes:
         return resp.read()
 
 
+def ensure_ucr_dataset_layout(dataset_name: str, root: Path) -> Path:
+    """
+    Normalize UCR on-disk layout to: <root>/<dataset_name>/<dataset_name>_{TRAIN,TEST}.<ext>
+    If legacy flat files exist under <root>, move them into the dataset subdirectory.
+    """
+    root.mkdir(parents=True, exist_ok=True)
+    dataset_dir = root / dataset_name
+    dataset_dir.mkdir(parents=True, exist_ok=True)
+
+    for split in ("TRAIN", "TEST"):
+        for ext in ("tsv", "txt", "arff"):
+            flat = root / f"{dataset_name}_{split}.{ext}"
+            nested = dataset_dir / f"{dataset_name}_{split}.{ext}"
+            if flat.exists() and not nested.exists():
+                logger.info("UCR layout migration: %s -> %s", flat, nested)
+                flat.rename(nested)
+    return dataset_dir
+
+
 def maybe_download_ucr(dataset_name: str, root: Path) -> None:
     root.mkdir(parents=True, exist_ok=True)
+    dataset_dir = ensure_ucr_dataset_layout(dataset_name=dataset_name, root=root)
+    if any(dataset_dir.glob(f"{dataset_name}_TRAIN.*")) and any(
+        dataset_dir.glob(f"{dataset_name}_TEST.*")
+    ):
+        logger.info("UCR dataset `%s` already present at %s", dataset_name, dataset_dir)
+        return
     url = UCR_URL_TEMPLATE.format(name=dataset_name)
     logger.info("Downloading UCR dataset `%s` from %s", dataset_name, url)
     blob = download_bytes(url)
     with zipfile.ZipFile(io.BytesIO(blob)) as zf:
         zf.extractall(root)
-    logger.info("Extracted UCR dataset `%s` into %s", dataset_name, root)
+    ensure_ucr_dataset_layout(dataset_name=dataset_name, root=root)
+    logger.info("Extracted UCR dataset `%s` into %s", dataset_name, dataset_dir)
 
 
 def maybe_download_pamap2(root: Path) -> None:
