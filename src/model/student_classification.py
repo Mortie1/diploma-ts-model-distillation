@@ -3,6 +3,8 @@ from __future__ import annotations
 import torch
 from torch import nn
 
+from src.model.modules import TransformerEncoder
+
 
 class StudentClassifier(nn.Module):
     """Light CNN+Transformer student for time-series classification."""
