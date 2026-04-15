@@ -20,6 +20,7 @@ class DistillationBridge(nn.Module):
         teacher_backend: str = "mock",
         teacher_model_name: str | None = None,
         teacher_hidden_dim: int = 256,
+        teacher_layer_idx: int = -1,
         freeze_teacher: bool = True,
     ):
         super().__init__()
@@ -32,6 +33,7 @@ class DistillationBridge(nn.Module):
             backend=teacher_backend,
             model_name=teacher_model_name,
             hidden_dim=teacher_hidden_dim,
+            layer_idx=teacher_layer_idx,
             freeze_teacher=freeze_teacher,
         )
         self.teacher_to_hidden = nn.Linear(teacher_hidden_dim, student_hidden_dim)

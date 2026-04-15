@@ -33,7 +33,7 @@ class MockAudioTeacher(nn.Module):
 class HFAudioTeacher(nn.Module):
     """Audio foundation-model wrapper via HuggingFace Transformers."""
 
-    def __init__(self, model_name: str, hidden_dim: int):
+    def __init__(self, model_name: str, hidden_dim: int, layer_idx: int = -1):
         super().__init__()
         try:
             from transformers import AutoModel
@@ -45,14 +45,33 @@ class HFAudioTeacher(nn.Module):
 
         self.model = AutoModel.from_pretrained(model_name)
         self.hidden_dim = hidden_dim
+        self.layer_idx = int(layer_idx)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # HF speech backbones take [B, T] waveform.
         if x.ndim != 3:
             raise ValueError(f"Expected 3D tensor [B, C, T], got {tuple(x.shape)}")
         wav = x.mean(dim=1)
-        outputs = self.model(input_values=wav)
-        hidden = outputs.last_hidden_state
+        outputs = self.model(input_values=wav, output_hidden_states=True)
+        hidden = None
+        if self.layer_idx == -1:
+            hidden = outputs.last_hidden_state
+        else:
+            hidden_states = outputs.hidden_states
+            if hidden_states is None:
+                raise RuntimeError(
+                    "HF teacher did not return hidden_states while layer_idx != -1."
+                )
+            n_layers = len(hidden_states)
+            idx = self.layer_idx
+            if idx < 0:
+                idx = n_layers + idx
+            if idx < 0 or idx >= n_layers:
+                raise IndexError(
+                    f"teacher_layer_idx={self.layer_idx} is out of range for "
+                    f"{n_layers} hidden states."
+                )
+            hidden = hidden_states[idx]
         return hidden.mean(dim=1)
 
 
@@ -64,6 +83,7 @@ class AudioTeacher(nn.Module):
         backend: str = "mock",
         model_name: Optional[str] = None,
         hidden_dim: int = 256,
+        layer_idx: int = -1,
         freeze_teacher: bool = True,
         eps: float = 1e-6,
     ):
@@ -76,7 +96,11 @@ class AudioTeacher(nn.Module):
         elif backend == "hf":
             if model_name is None:
                 raise ValueError("model_name must be set for backend='hf'")
-            self.teacher = HFAudioTeacher(model_name=model_name, hidden_dim=hidden_dim)
+            self.teacher = HFAudioTeacher(
+                model_name=model_name,
+                hidden_dim=hidden_dim,
+                layer_idx=layer_idx,
+            )
         else:
             raise ValueError(f"Unknown backend: {backend}")
 

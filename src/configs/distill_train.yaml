@@ -26,6 +26,7 @@ trainer:
   log_step: 1
   n_epochs: 10
   epoch_len: null
+  grad_accum_steps: 1
   amp_enabled: true
   amp_dtype: "bf16"
   compile_enabled: false
@@ -57,6 +58,7 @@ distillation:
   student_pred_dim: 2
   teacher_backend: mock
   teacher_hidden_dim: 256
+  teacher_layer_idx: -1
 
 dataloader:
   batch_size: 64
