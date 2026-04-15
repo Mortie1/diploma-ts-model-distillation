@@ -115,4 +115,5 @@ outputs/
 __MACOSX/
 
 agents/
+AGENTS.md
 *.ipynb
