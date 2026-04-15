@@ -1,5 +1,5 @@
 defaults:
-  - /model: moment_classification_adapter
+  - /model: classification_adapter
   - /metrics: classification
   - /datasets: ucr_gunpoint
   - /dataloader: smoke

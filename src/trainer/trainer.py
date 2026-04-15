@@ -34,7 +34,6 @@ class Trainer(BaseTrainer):
         metric_funcs = self.metrics["inference"]
         if self.is_train:
             metric_funcs = self.metrics["train"]
-            self.optimizer.zero_grad()
 
         with self._autocast_context():
             outputs = self.model(**batch)
@@ -48,17 +47,26 @@ class Trainer(BaseTrainer):
             batch.update(all_losses)
 
         if self.is_train:
+            accum_steps = int(self.grad_accum_steps)
+            loss_to_backprop = batch["loss"] / accum_steps
+            should_step = (self._train_batch_idx + 1) % accum_steps == 0 or (
+                self._train_batch_idx + 1
+            ) >= self.epoch_len
             if self.use_grad_scaler:
-                self.scaler.scale(batch["loss"]).backward()
-                self.scaler.unscale_(self.optimizer)
-                self._clip_grad_norm()
-                self.scaler.step(self.optimizer)
-                self.scaler.update()
+                self.scaler.scale(loss_to_backprop).backward()
+                if should_step:
+                    self.scaler.unscale_(self.optimizer)
+                    self._clip_grad_norm()
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
+                    self.optimizer.zero_grad(set_to_none=True)
             else:
-                batch["loss"].backward()  # sum of all losses is always called loss
-                self._clip_grad_norm()
-                self.optimizer.step()
-            if self.lr_scheduler is not None:
+                loss_to_backprop.backward()
+                if should_step:
+                    self._clip_grad_norm()
+                    self.optimizer.step()
+                    self.optimizer.zero_grad(set_to_none=True)
+            if should_step and self.lr_scheduler is not None:
                 self.lr_scheduler.step()
 
         # update metrics for each loss (in case of multiple losses)

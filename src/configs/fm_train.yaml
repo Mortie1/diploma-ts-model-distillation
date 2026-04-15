@@ -21,6 +21,7 @@ trainer:
   log_step: 10
   n_epochs: 10
   epoch_len: null
+  grad_accum_steps: 1
   amp_enabled: true
   amp_dtype: "bf16"
   compile_enabled: false

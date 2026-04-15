@@ -67,6 +67,9 @@ class BaseTrainer:
 
         self.logger = logger
         self.log_step = config.trainer.get("log_step", 50)
+        self.grad_accum_steps = int(config.trainer.get("grad_accum_steps", 1))
+        if self.grad_accum_steps <= 0:
+            raise ValueError("trainer.grad_accum_steps must be >= 1")
 
         self.model = model
         total_params = sum(p.numel() for p in self.model.parameters())
@@ -129,6 +132,11 @@ class BaseTrainer:
                 "AMP enabled: dtype=%s, grad_scaler=%s",
                 "bf16" if self.amp_dtype == torch.bfloat16 else "fp16",
                 self.use_grad_scaler,
+            )
+        if self.grad_accum_steps > 1:
+            self.logger.info(
+                "Gradient accumulation enabled: grad_accum_steps=%d",
+                self.grad_accum_steps,
             )
 
         # define epochs
@@ -249,10 +257,12 @@ class BaseTrainer:
         epoch_targets = []
         self.writer.set_step((epoch - 1) * self.epoch_len)
         self.writer.add_scalar("epoch", epoch)
+        self.optimizer.zero_grad(set_to_none=True)
         for batch_idx, batch in enumerate(
             tqdm(self.train_dataloader, desc="train", total=self.epoch_len)
         ):
             try:
+                self._train_batch_idx = batch_idx
                 batch = self.process_batch(
                     batch,
                     metrics=self.train_metrics,
@@ -260,6 +270,7 @@ class BaseTrainer:
             except torch.cuda.OutOfMemoryError as e:
                 if self.skip_oom:
                     self.logger.warning("OOM on batch. Skipping batch.")
+                    self.optimizer.zero_grad(set_to_none=True)
                     torch.cuda.empty_cache()  # free some memory
                     continue
                 else:
@@ -536,6 +547,8 @@ class BaseTrainer:
         if isinstance(parameters, torch.Tensor):
             parameters = [parameters]
         parameters = [p for p in parameters if p.grad is not None]
+        if len(parameters) == 0:
+            return 0.0
         total_norm = torch.norm(
             torch.stack([torch.norm(p.grad.detach(), norm_type) for p in parameters]),
             norm_type,
