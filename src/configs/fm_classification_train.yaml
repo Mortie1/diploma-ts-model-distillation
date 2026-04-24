@@ -22,6 +22,9 @@ trainer:
   n_epochs: 10
   epoch_len: null
   grad_accum_steps: 1
+  warmup_ratio: 0.1
+  warmup_steps: null
+  warmup_start_factor: 0.1
   amp_enabled: true
   amp_dtype: "bf16"
   compile_enabled: false

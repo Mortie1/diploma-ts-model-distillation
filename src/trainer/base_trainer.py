@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from contextlib import nullcontext
+from pathlib import Path
 
 import torch
 from numpy import inf
@@ -70,6 +71,10 @@ class BaseTrainer:
         self.grad_accum_steps = int(config.trainer.get("grad_accum_steps", 1))
         if self.grad_accum_steps <= 0:
             raise ValueError("trainer.grad_accum_steps must be >= 1")
+        self.max_checkpoints = int(config.trainer.get("max_checkpoints", 3))
+        self.save_trainable_only = bool(
+            config.trainer.get("save_trainable_only", False)
+        )
 
         self.model = model
         total_params = sum(p.numel() for p in self.model.parameters())
@@ -615,10 +620,18 @@ class BaseTrainer:
                 checkpoint-epochEpochNumber.pth)
         """
         arch = type(self.model).__name__
+        state_dict = (
+            self._trainable_state_dict()
+            if self.save_trainable_only
+            else self.model.state_dict()
+        )
         state = {
             "arch": arch,
             "epoch": epoch,
-            "state_dict": self.model.state_dict(),
+            "state_dict": state_dict,
+            "state_dict_kind": (
+                "trainable_only" if self.save_trainable_only else "full"
+            ),
             "optimizer": self.optimizer.state_dict(),
             "lr_scheduler": self.lr_scheduler.state_dict(),
             "monitor_best": self.mnt_best,
@@ -632,12 +645,78 @@ class BaseTrainer:
             if self.config.writer.log_checkpoints:
                 self.writer.add_checkpoint(filename, str(self.checkpoint_dir.parent))
             self.logger.info(f"Saving checkpoint: {filename} ...")
+            self._prune_old_checkpoints()
         if save_best:
             best_path = str(self.checkpoint_dir / "model_best.pth")
             torch.save(state, best_path)
             if self.config.writer.log_checkpoints:
                 self.writer.add_checkpoint(best_path, str(self.checkpoint_dir.parent))
             self.logger.info("Saving current best: model_best.pth ...")
+
+    def _trainable_state_dict(self):
+        """
+        Return a compact state_dict containing only trainable parameters.
+        Useful for frozen-provider / LoRA / head-only runs to reduce checkpoint I/O.
+        """
+        full_state = self.model.state_dict()
+        trainable_param_names = {
+            name for name, p in self.model.named_parameters() if p.requires_grad
+        }
+        compact_state = {
+            name: tensor
+            for name, tensor in full_state.items()
+            if name in trainable_param_names
+        }
+        if len(compact_state) == 0:
+            self.logger.warning(
+                "save_trainable_only=true, but no trainable params were found; "
+                "falling back to full state_dict."
+            )
+            return full_state
+        self.logger.info(
+            "Checkpoint mode=trainable_only: saving %d tensors (out of %d total).",
+            len(compact_state),
+            len(full_state),
+        )
+        return compact_state
+
+    def _prune_old_checkpoints(self):
+        """
+        Keep only the newest N epoch checkpoints in the run directory.
+        Never touches model_best.pth.
+        """
+        if self.max_checkpoints <= 0:
+            return
+
+        ckpt_files = sorted(
+            self.checkpoint_dir.glob("checkpoint-epoch*.pth"),
+            key=lambda p: self._checkpoint_epoch_index(p),
+        )
+        if len(ckpt_files) <= self.max_checkpoints:
+            return
+
+        to_remove = ckpt_files[: len(ckpt_files) - self.max_checkpoints]
+        for path in to_remove:
+            try:
+                path.unlink()
+                self.logger.info("Removed old checkpoint: %s", str(path))
+            except FileNotFoundError:
+                continue
+            except Exception as exc:
+                self.logger.warning(
+                    "Failed to remove checkpoint %s: %s", str(path), exc
+                )
+
+    @staticmethod
+    def _checkpoint_epoch_index(path: Path) -> int:
+        stem = path.stem  # checkpoint-epoch123
+        prefix = "checkpoint-epoch"
+        if not stem.startswith(prefix):
+            return -1
+        try:
+            return int(stem[len(prefix) :])
+        except Exception:
+            return -1
 
     def _resume_checkpoint(self, resume_path):
         """
@@ -663,7 +742,7 @@ class BaseTrainer:
                 "Warning: Architecture configuration given in the config file is different from that "
                 "of the checkpoint. This may yield an exception when state_dict is loaded."
             )
-        self.model.load_state_dict(checkpoint["state_dict"])
+        self._load_model_state(checkpoint)
         if (
             self.distillation is not None
             and checkpoint.get("distillation_state_dict") is not None
@@ -707,7 +786,7 @@ class BaseTrainer:
         checkpoint = torch.load(pretrained_path, self.device, weights_only=False)
 
         if checkpoint.get("state_dict") is not None:
-            self.model.load_state_dict(checkpoint["state_dict"])
+            self._load_model_state(checkpoint)
         else:
             self.model.load_state_dict(checkpoint)
 
@@ -716,3 +795,20 @@ class BaseTrainer:
             and checkpoint.get("distillation_state_dict") is not None
         ):
             self.distillation.load_state_dict(checkpoint["distillation_state_dict"])
+
+    def _load_model_state(self, checkpoint: dict):
+        """
+        Load model state from checkpoint, supporting compact trainable-only checkpoints.
+        """
+        state_dict = checkpoint["state_dict"]
+        state_kind = str(checkpoint.get("state_dict_kind", "full")).lower()
+        if state_kind == "trainable_only":
+            missing, unexpected = self.model.load_state_dict(state_dict, strict=False)
+            if hasattr(self, "logger"):
+                self.logger.info(
+                    "Loaded trainable-only checkpoint: missing=%d unexpected=%d",
+                    len(missing),
+                    len(unexpected),
+                )
+        else:
+            self.model.load_state_dict(state_dict)

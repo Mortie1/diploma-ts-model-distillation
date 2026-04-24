@@ -19,6 +19,9 @@ trainer:
   log_step: 50
   n_epochs: 100
   epoch_len: 500
+  warmup_ratio: 0.1
+  warmup_steps: null
+  warmup_start_factor: 0.1
   compile_enabled: false
   compile_backend: null
   compile_mode: null
