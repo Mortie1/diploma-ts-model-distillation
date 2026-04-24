@@ -1,10 +1,11 @@
 from src.model.adapters import (
-    ChronosClassificationAdapter,
     Chronos2ClassificationAdapter,
+    ChronosClassificationAdapter,
+    HuBERTMLPClassificationAdapter,
     MomentClassificationAdapter,
-    TiRexClassificationAdapter,
     TimesFMClassificationAdapter,
     TimesFMHFClassificationAdapter,
+    TiRexClassificationAdapter,
     TSPulseClassificationAdapter,
     UniTSClassificationAdapter,
 )
@@ -16,6 +17,7 @@ __all__ = [
     "StudentClassifier",
     "ChronosClassificationAdapter",
     "Chronos2ClassificationAdapter",
+    "HuBERTMLPClassificationAdapter",
     "TimesFMClassificationAdapter",
     "TimesFMHFClassificationAdapter",
     "MomentClassificationAdapter",
