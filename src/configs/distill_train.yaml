@@ -16,17 +16,21 @@ model:
 optimizer:
   _target_: torch.optim.Adam
   lr: 3e-4
+  weight_decay: 1e-2
 
 lr_scheduler:
-  _target_: torch.optim.lr_scheduler.StepLR
-  gamma: 0.9
-  step_size: ${trainer.epoch_len}
+  _target_: torch.optim.lr_scheduler.CosineAnnealingLR
+  T_max: auto
+  eta_min: 0.0
 
 trainer:
   log_step: 1
   n_epochs: 10
   epoch_len: null
   grad_accum_steps: 1
+  warmup_ratio: 0.1
+  warmup_steps: null
+  warmup_start_factor: 0.1
   amp_enabled: true
   amp_dtype: "bf16"
   compile_enabled: false
@@ -42,6 +46,7 @@ trainer:
   override: true
   monitor: "max val_MacroF1"
   save_period: 1
+  save_trainable_only: true
   early_stop: ${trainer.n_epochs}
   save_dir: "saved"
   seed: 42
@@ -49,17 +54,26 @@ trainer:
 writer:
   run_name: "distill_train"
   description: "Base distillation run for classification student."
-  tags: ["classification", "distill", "train"]
+  tags: ["classification", "distill", "hubert", "pamap-wrist-acc6",]
 
 distillation:
   enabled: true
   input_key: inputs
-  student_hidden_dim: 128
-  student_pred_dim: 2
   teacher_backend: mock
-  teacher_hidden_dim: 256
+  teacher_hidden_dim: 128
   teacher_layer_idx: -1
+  teacher_per_channel: true
+  teacher_channel_reduce: mean
+  teacher_channel_chunk_size: 32
+  teacher_projection: none
+  teacher_pca_dim: 768
+  teacher_pca_fit_batches: 40
+  teacher_pca_center: true
+
+loss_function:
+  lambda_feat: 0
+  feat_loss_type: cosine
 
 dataloader:
-  batch_size: 64
+  batch_size: 128
   num_workers: 2

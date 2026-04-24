@@ -1,7 +1,12 @@
 _target_: src.model.StudentClassifier
 in_channels: 1
 n_classes: 2
-hidden_dim: 128
-n_heads: 4
-n_layers: 2
-dropout: 0.1
+hidden_dim: 512
+output_dim: 512
+n_heads: 8
+n_layers: 6
+dropout: 0.3
+ff_mult: 4
+use_swiglu: False
+use_rope: True
+rope_base: 10_000

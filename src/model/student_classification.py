@@ -14,9 +14,14 @@ class StudentClassifier(nn.Module):
         in_channels: int,
         n_classes: int,
         hidden_dim: int = 128,
+        output_dim: int = 768,
         n_heads: int = 4,
         n_layers: int = 2,
         dropout: float = 0.1,
+        ff_mult: int = 4,
+        use_swiglu: bool = False,
+        use_rope: bool = True,
+        rope_base: int = 10_000,
     ):
         super().__init__()
         self.feature = nn.Sequential(
@@ -25,24 +30,28 @@ class StudentClassifier(nn.Module):
             nn.Conv1d(hidden_dim, hidden_dim, kernel_size=5, padding=2),
             nn.GELU(),
         )
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=hidden_dim,
-            nhead=n_heads,
-            dim_feedforward=hidden_dim * 4,
+        self.encoder = TransformerEncoder(
+            hidden_dim=hidden_dim,
+            n_heads=n_heads,
+            n_layers=n_layers,
             dropout=dropout,
-            batch_first=True,
+            ff_mult=ff_mult,
+            use_swiglu=use_swiglu,
+            use_rope=use_rope,
+            rope_base=rope_base,
         )
-        self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
-        self.head = nn.Linear(hidden_dim, n_classes)
+        self.up = nn.Linear(hidden_dim, output_dim)
+        self.head = nn.Linear(output_dim, n_classes)
 
     def forward(self, inputs: torch.Tensor, **batch):
         # inputs: [B, C, T]
         feats = self.feature(inputs).transpose(1, 2)
         encoded = self.encoder(feats)
         pooled = encoded.mean(dim=1)
-        logits = self.head(pooled)
+        feats = self.up(pooled)
+        logits = self.head(nn.functional.gelu(feats))
         return {
             "logits": logits,
-            "student_hidden": pooled,
+            "student_hidden": feats,
             "student_pred": logits,
         }

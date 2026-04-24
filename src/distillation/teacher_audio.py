@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
 import torch
 from torch import nn
+
+logger = logging.getLogger(__name__)
 
 
 class MockAudioTeacher(nn.Module):
@@ -33,7 +36,14 @@ class MockAudioTeacher(nn.Module):
 class HFAudioTeacher(nn.Module):
     """Audio foundation-model wrapper via HuggingFace Transformers."""
 
-    def __init__(self, model_name: str, hidden_dim: int, layer_idx: int = -1):
+    def __init__(
+        self,
+        model_name: str,
+        layer_idx: int = -1,
+        per_channel: bool = False,
+        channel_reduce: str = "mean",
+        channel_chunk_size: int = 0,
+    ):
         super().__init__()
         try:
             from transformers import AutoModel
@@ -44,15 +54,14 @@ class HFAudioTeacher(nn.Module):
             ) from exc
 
         self.model = AutoModel.from_pretrained(model_name)
-        self.hidden_dim = hidden_dim
         self.layer_idx = int(layer_idx)
+        self.per_channel = bool(per_channel)
+        self.channel_reduce = str(channel_reduce).lower()
+        self.channel_chunk_size = int(channel_chunk_size)
+        if self.channel_reduce not in {"mean", "max", "concat"}:
+            raise ValueError("channel_reduce must be one of: mean, max, concat")
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # HF speech backbones take [B, T] waveform.
-        if x.ndim != 3:
-            raise ValueError(f"Expected 3D tensor [B, C, T], got {tuple(x.shape)}")
-        wav = x.mean(dim=1)
-        outputs = self.model(input_values=wav, output_hidden_states=True)
+    def _pool_hidden(self, outputs) -> torch.Tensor:
         hidden = None
         if self.layer_idx == -1:
             hidden = outputs.last_hidden_state
@@ -74,6 +83,33 @@ class HFAudioTeacher(nn.Module):
             hidden = hidden_states[idx]
         return hidden.mean(dim=1)
 
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # HF speech backbones take [B, T] waveform.
+        if x.ndim != 3:
+            raise ValueError(f"Expected 3D tensor [B, C, T], got {tuple(x.shape)}")
+        if not self.per_channel:
+            wav = x.mean(dim=1)
+            outputs = self.model(input_values=wav, output_hidden_states=True)
+            return self._pool_hidden(outputs)
+
+        bsz, n_channels, seq_len = x.shape
+        chunk = self.channel_chunk_size if self.channel_chunk_size > 0 else n_channels
+        chunks = []
+        for start in range(0, n_channels, chunk):
+            stop = min(start + chunk, n_channels)
+            c = stop - start
+            wav = x[:, start:stop, :].reshape(bsz * c, seq_len)
+            outputs = self.model(input_values=wav, output_hidden_states=True)
+            pooled = self._pool_hidden(outputs).reshape(bsz, c, -1)  # [B, c, D]
+            chunks.append(pooled)
+        per_channel = torch.cat(chunks, dim=1)  # [B, C, D]
+        if self.channel_reduce == "mean":
+            return per_channel.mean(dim=1)
+        if self.channel_reduce == "max":
+            return per_channel.max(dim=1).values
+        if self.channel_reduce == "concat":
+            return per_channel.view(bsz, -1)
+
 
 class AudioTeacher(nn.Module):
     """Factory + preprocessing wrapper for audio teachers."""
@@ -84,11 +120,12 @@ class AudioTeacher(nn.Module):
         model_name: Optional[str] = None,
         hidden_dim: int = 256,
         layer_idx: int = -1,
+        per_channel: bool = False,
+        channel_reduce: str = "mean",
+        channel_chunk_size: int = 0,
         freeze_teacher: bool = True,
-        eps: float = 1e-6,
     ):
         super().__init__()
-        self.eps = eps
         self.backend = backend
 
         if backend == "mock":
@@ -96,10 +133,18 @@ class AudioTeacher(nn.Module):
         elif backend == "hf":
             if model_name is None:
                 raise ValueError("model_name must be set for backend='hf'")
+            if hidden_dim != 256:
+                logger.warning(
+                    "teacher_hidden_dim=%s is ignored for backend='hf'. "
+                    "HF teacher hidden size is defined by the checkpoint architecture.",
+                    hidden_dim,
+                )
             self.teacher = HFAudioTeacher(
                 model_name=model_name,
-                hidden_dim=hidden_dim,
                 layer_idx=layer_idx,
+                per_channel=per_channel,
+                channel_reduce=channel_reduce,
+                channel_chunk_size=channel_chunk_size,
             )
         else:
             raise ValueError(f"Unknown backend: {backend}")
@@ -108,12 +153,5 @@ class AudioTeacher(nn.Module):
             for param in self.teacher.parameters():
                 param.requires_grad = False
 
-    def _normalize(self, x: torch.Tensor) -> torch.Tensor:
-        # Per-sample z-score normalization.
-        mean = x.mean(dim=-1, keepdim=True)
-        std = x.std(dim=-1, keepdim=True).clamp_min(self.eps)
-        return (x - mean) / std
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self._normalize(x)
         return self.teacher(x)
