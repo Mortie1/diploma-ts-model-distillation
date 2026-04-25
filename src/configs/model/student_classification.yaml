@@ -2,11 +2,12 @@ _target_: src.model.StudentClassifier
 in_channels: 1
 n_classes: 2
 hidden_dim: 512
-output_dim: 512
+output_dim: 1024
 n_heads: 8
 n_layers: 6
-dropout: 0.3
+dropout: 0.1
 ff_mult: 4
 use_swiglu: False
 use_rope: True
 rope_base: 10_000
+channel_fusion: "concat"

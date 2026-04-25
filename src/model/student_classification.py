@@ -7,7 +7,7 @@ from src.model.modules import TransformerEncoder
 
 
 class StudentClassifier(nn.Module):
-    """Light CNN+Transformer student for time-series classification."""
+    """Channel-independent CNN+Transformer student for time-series classification."""
 
     def __init__(
         self,
@@ -22,10 +22,17 @@ class StudentClassifier(nn.Module):
         use_swiglu: bool = False,
         use_rope: bool = True,
         rope_base: int = 10_000,
+        channel_fusion: str = "concat",
     ):
         super().__init__()
+        self.in_channels = int(in_channels)
+        self.channel_fusion = str(channel_fusion).lower()
+        if self.channel_fusion not in {"concat", "mean"}:
+            raise ValueError("channel_fusion must be one of: concat, mean.")
+
+        # Channel-independent frontend: one shared encoder applied to each channel.
         self.feature = nn.Sequential(
-            nn.Conv1d(in_channels, hidden_dim, kernel_size=7, padding=3),
+            nn.Conv1d(1, hidden_dim, kernel_size=7, padding=3),
             nn.GELU(),
             nn.Conv1d(hidden_dim, hidden_dim, kernel_size=5, padding=2),
             nn.GELU(),
@@ -41,14 +48,36 @@ class StudentClassifier(nn.Module):
             rope_base=rope_base,
         )
         self.up = nn.Linear(hidden_dim, output_dim)
-        self.head = nn.Linear(output_dim, n_classes)
+        head_in = (
+            output_dim * self.in_channels
+            if self.channel_fusion == "concat"
+            else output_dim
+        )
+        self.head = nn.Linear(head_in, n_classes)
 
     def forward(self, inputs: torch.Tensor, **batch):
-        # inputs: [B, C, T]
-        feats = self.feature(inputs).transpose(1, 2)
+        # inputs: [B, C, T] (preferred) or [B, T] (single channel).
+        if inputs.ndim == 2:
+            inputs = inputs.unsqueeze(1)
+        if inputs.ndim != 3:
+            raise ValueError(
+                f"StudentClassifier expects inputs [B, C, T] or [B, T], got {tuple(inputs.shape)}."
+            )
+        bsz, n_channels, seq_len = inputs.shape
+        if n_channels != self.in_channels:
+            raise ValueError(
+                f"StudentClassifier expected in_channels={self.in_channels}, got {n_channels}."
+            )
+
+        x = inputs.reshape(bsz * n_channels, 1, seq_len)
+        feats = self.feature(x).transpose(1, 2)
         encoded = self.encoder(feats)
         pooled = encoded.mean(dim=1)
-        feats = self.up(pooled)
+        channel_feats = self.up(pooled).reshape(bsz, n_channels, -1)
+        if self.channel_fusion == "concat":
+            feats = channel_feats.reshape(bsz, -1)
+        else:
+            feats = channel_feats.mean(dim=1)
         logits = self.head(nn.functional.gelu(feats))
         return {
             "logits": logits,
