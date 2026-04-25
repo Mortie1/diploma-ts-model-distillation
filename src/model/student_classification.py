@@ -23,6 +23,9 @@ class StudentClassifier(nn.Module):
         use_rope: bool = True,
         rope_base: int = 10_000,
         channel_fusion: str = "concat",
+        gradient_checkpointing: bool = False,
+        checkpoint_every_n_layers: int = 1,
+        checkpoint_use_reentrant: bool = False,
     ):
         super().__init__()
         self.in_channels = int(in_channels)
@@ -46,6 +49,9 @@ class StudentClassifier(nn.Module):
             use_swiglu=use_swiglu,
             use_rope=use_rope,
             rope_base=rope_base,
+            gradient_checkpointing=gradient_checkpointing,
+            checkpoint_every_n_layers=checkpoint_every_n_layers,
+            checkpoint_use_reentrant=checkpoint_use_reentrant,
         )
         self.up = nn.Linear(hidden_dim, output_dim)
         head_in = (

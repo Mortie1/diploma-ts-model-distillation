@@ -3,6 +3,7 @@ from __future__ import annotations
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torch.utils.checkpoint import checkpoint
 
 from src.model.modules.ff import FeedForward, SwiGLU
 from src.model.modules.rope import RotaryPositionalEmbeddings
@@ -112,10 +113,18 @@ class TransformerEncoder(nn.Module):
         use_swiglu: bool = False,
         use_rope: bool = True,
         rope_base: int = 10_000,
+        gradient_checkpointing: bool = False,
+        checkpoint_every_n_layers: int = 1,
+        checkpoint_use_reentrant: bool = False,
     ):
         super().__init__()
         if n_layers <= 0:
             raise ValueError("n_layers must be > 0.")
+        if checkpoint_every_n_layers <= 0:
+            raise ValueError("checkpoint_every_n_layers must be > 0.")
+        self.gradient_checkpointing = bool(gradient_checkpointing)
+        self.checkpoint_every_n_layers = int(checkpoint_every_n_layers)
+        self.checkpoint_use_reentrant = bool(checkpoint_use_reentrant)
         self.layers = nn.ModuleList(
             [
                 TransformerBlock(
@@ -132,6 +141,19 @@ class TransformerEncoder(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        for layer in self.layers:
-            x = layer(x)
+        use_ckpt = (
+            self.gradient_checkpointing
+            and self.training
+            and torch.is_grad_enabled()
+            and x.requires_grad
+        )
+        for idx, layer in enumerate(self.layers):
+            if use_ckpt and (idx % self.checkpoint_every_n_layers == 0):
+                x = checkpoint(
+                    layer,
+                    x,
+                    use_reentrant=self.checkpoint_use_reentrant,
+                )
+            else:
+                x = layer(x)
         return x
