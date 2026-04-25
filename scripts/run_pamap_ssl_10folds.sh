@@ -16,6 +16,7 @@ fi
 MODEL_FAMILY="${MODEL_FAMILY:-moment}"
 MODEL_TARGET="${MODEL_TARGET:-src.model.MomentClassificationAdapter}"
 MODEL_SIZE="${MODEL_SIZE:-base}"
+RUN_BASENAME="${RUN_BASENAME:-${MODEL_FAMILY}-${MODEL_SIZE}-p2}"
 
 N_FOLDS="${N_FOLDS:-10}"
 FOLD_SEED="${FOLD_SEED:-42}"
@@ -33,7 +34,7 @@ LOG_STEP="${LOG_STEP:-10}"
 N_CLASSES="${N_CLASSES:-8}"
 IN_CHANNELS="${IN_CHANNELS:-3}"
 
-OUT_DIR="${OUT_DIR:-/tmp/pamap_ssl_10folds_${MODEL_FAMILY}_${MODEL_SIZE}}"
+OUT_DIR="${OUT_DIR:-/tmp/${RUN_BASENAME}}"
 mkdir -p "$OUT_DIR"
 
 RESULTS="$OUT_DIR/results.tsv"
@@ -100,7 +101,7 @@ PY
 for row in "${FOLDS[@]}"; do
   IFS='|' read -r fold_idx val_subj test_subj <<< "$row"
 
-  run_name="${MODEL_FAMILY}-${MODEL_SIZE}-p2-f${fold_idx}-v${val_subj}-t${test_subj}"
+  run_name="${RUN_BASENAME}-f${fold_idx}-v${val_subj}-t${test_subj}"
   run_name="${run_name:0:40}"
   tags="[classification,pamap2,ssl_wearables,${MODEL_FAMILY},${MODEL_FAMILY}-${MODEL_SIZE},fold_${fold_idx},val_${val_subj},test_${test_subj}]"
   log_file="$OUT_DIR/fold_${fold_idx}_v${val_subj}_t${test_subj}.train.log"

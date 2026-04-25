@@ -37,16 +37,17 @@ TEACHER_LAYER_IDX="${TEACHER_LAYER_IDX:-8}"
 TEACHER_PER_CHANNEL="${TEACHER_PER_CHANNEL:-true}"
 TEACHER_CHANNEL_REDUCE="${TEACHER_CHANNEL_REDUCE:-mean}"
 TEACHER_CHANNEL_CHUNK_SIZE="${TEACHER_CHANNEL_CHUNK_SIZE:-16}"
-TEACHER_PROJECTION="${TEACHER_PROJECTION:-pca}"   # none|pca
+TEACHER_PROJECTION="${TEACHER_PROJECTION:-none}"   # none|pca
 TEACHER_PCA_DIM="${TEACHER_PCA_DIM:-512}"
 TEACHER_PCA_FIT_BATCHES="${TEACHER_PCA_FIT_BATCHES:-50}"
 TEACHER_PCA_CENTER="${TEACHER_PCA_CENTER:-true}"
-
 LAMBDA_FEAT="${LAMBDA_FEAT:-0.05}"
 LAMBDA_LOGIT="${LAMBDA_LOGIT:-0.0}"
 FEAT_LOSS_TYPE="${FEAT_LOSS_TYPE:-cosine}"   # mse|cosine
 
-OUT_DIR="${OUT_DIR:-/tmp/pamap_ssl_10folds_distill_${MODEL_TAG}}"
+LAMBDA_TAG="$(echo "${LAMBDA_FEAT}" | tr '.' 'p' | tr -cd '[:alnum:]')"
+RUN_BASENAME="${RUN_BASENAME:-dist-${MODEL_TAG}-lf${LAMBDA_TAG}}"
+OUT_DIR="${OUT_DIR:-/tmp/${RUN_BASENAME}}"
 mkdir -p "$OUT_DIR"
 
 RESULTS="$OUT_DIR/results.tsv"
@@ -113,8 +114,7 @@ PY
 for row in "${FOLDS[@]}"; do
   IFS='|' read -r fold_idx val_subj test_subj <<< "$row"
 
-  lambda_tag="$(echo "${LAMBDA_FEAT}" | tr '.' 'p' | tr -cd '[:alnum:]')"
-  run_name="dist-${MODEL_TAG}-lf${lambda_tag}-f${fold_idx}-v${val_subj}-t${test_subj}"
+  run_name="${RUN_BASENAME}-f${fold_idx}-v${val_subj}-t${test_subj}"
   tags="[classification,distill,pamap2,ssl_wearables,${MODEL_TAG},fold_${fold_idx},val_${val_subj},test_${test_subj}]"
   log_file="$OUT_DIR/fold_${fold_idx}_v${val_subj}_t${test_subj}.train.log"
   infer_log="$OUT_DIR/fold_${fold_idx}_v${val_subj}_t${test_subj}.infer.log"
