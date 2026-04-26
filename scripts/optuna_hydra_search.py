@@ -47,6 +47,11 @@ def parse_args():
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--sampler", default="tpe", choices=["tpe", "random"])
     p.add_argument("--pruner", default="median", choices=["none", "median"])
+    p.add_argument(
+        "--continue-on-trial-error",
+        action="store_true",
+        help="Do not stop study on RuntimeError in a trial; mark trial as FAIL and continue.",
+    )
     p.add_argument("--writer", default="cometml")
     p.add_argument("--comet-mode", default="online", choices=["online", "offline"])
     p.add_argument("--base-overrides", nargs="*", default=[])
@@ -374,7 +379,13 @@ def main():
     print("study_out_dir={}".format(study_out_dir))
 
     objective = make_objective(args, study_out_dir)
-    study.optimize(objective, n_trials=args.n_trials, timeout=args.timeout_sec)
+    catch_exceptions = (RuntimeError,) if args.continue_on_trial_error else ()
+    study.optimize(
+        objective,
+        n_trials=args.n_trials,
+        timeout=args.timeout_sec,
+        catch=catch_exceptions,
+    )
 
     best = study.best_trial
     print("\n=== Best Trial ===")
