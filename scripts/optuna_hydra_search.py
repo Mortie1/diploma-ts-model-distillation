@@ -2,13 +2,16 @@
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import os
+import random
 import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from statistics import mean
+from typing import Callable, Dict, List, Optional, Tuple
 
 import optuna
 
@@ -41,6 +44,24 @@ def parse_args():
     p.add_argument("--writer", default="cometml")
     p.add_argument("--comet-mode", default="online", choices=["online", "offline"])
     p.add_argument("--base-overrides", nargs="*", default=[])
+    p.add_argument("--mode", default="single", choices=["single", "cv"])
+    p.add_argument(
+        "--cv-folds",
+        type=int,
+        default=5,
+        help="Number of folds per trial when --mode=cv.",
+    )
+    p.add_argument(
+        "--cv-seed",
+        type=int,
+        default=42,
+        help="Base seed for fold sampling when --mode=cv.",
+    )
+    p.add_argument(
+        "--cv-subjects",
+        default="101,102,103,104,105,106,107,108",
+        help="Comma-separated subject ids for PAMAP SSL folds.",
+    )
     p.add_argument(
         "--enqueue-best-from",
         default=None,
@@ -118,17 +139,19 @@ def make_objective(args, study_out_dir: Path):
     train_script = str((Path(args.workdir) / args.train_script).resolve())
     preset_fn = PRESETS[args.preset]
 
-    def objective(trial: optuna.Trial) -> float:
+    def _run_one_train(
+        trial: optuna.Trial,
+        run_name: str,
+        trial_log,
+        extra_overrides: Optional[List[str]] = None,
+    ) -> float:
+        extra_overrides = extra_overrides or []
         trial_overrides = preset_fn(trial)
-        run_name = "opt-{}-t{:04d}".format(args.study_name, trial.number)
         tags = "[optuna,{study},trial_{trial},{preset}]".format(
             study=args.study_name,
             trial=trial.number,
             preset=args.preset,
         )
-        trial_log = study_out_dir / "trials" / ("trial_{:04d}.log".format(trial.number))
-        trial_log.parent.mkdir(parents=True, exist_ok=True)
-
         cmd = [
             args.python_bin,
             train_script,
@@ -139,6 +162,7 @@ def make_objective(args, study_out_dir: Path):
             "writer.tags={}".format(tags),
             *args.base_overrides,
             *trial_overrides,
+            *extra_overrides,
         ]
 
         best_metric: Optional[float] = None
@@ -146,61 +170,127 @@ def make_objective(args, study_out_dir: Path):
         env = dict(os.environ)
         env["PYTHONUNBUFFERED"] = "1"
 
-        with trial_log.open("w", encoding="utf-8") as fout:
-            fout.write("CMD: " + " ".join(cmd) + "\n\n")
-            proc = subprocess.Popen(
-                cmd,
-                cwd=args.workdir,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-                env=env,
-            )
-            assert proc.stdout is not None
-            for line in proc.stdout:
-                fout.write(line)
-                value = try_parse_metric(line, metric_name)
-                if value is not None:
-                    if best_metric is None:
-                        best_metric = value
+        trial_log.write("CMD: " + " ".join(cmd) + "\n\n")
+        proc = subprocess.Popen(
+            cmd,
+            cwd=args.workdir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+            env=env,
+        )
+        assert proc.stdout is not None
+        for line in proc.stdout:
+            trial_log.write(line)
+            value = try_parse_metric(line, metric_name)
+            if value is not None:
+                if best_metric is None:
+                    best_metric = value
+                else:
+                    if args.direction == "maximize":
+                        best_metric = max(best_metric, value)
                     else:
-                        if args.direction == "maximize":
-                            best_metric = max(best_metric, value)
-                        else:
-                            best_metric = min(best_metric, value)
-                    trial.report(value, step=metric_step)
-                    metric_step += 1
-                    if trial.should_prune():
-                        proc.terminate()
-                        proc.wait(timeout=30)
-                        raise optuna.TrialPruned(
-                            "Pruned at step={} with {}={}".format(
-                                metric_step, metric_name, value
-                            )
+                        best_metric = min(best_metric, value)
+                trial.report(value, step=metric_step)
+                metric_step += 1
+                if trial.should_prune():
+                    proc.terminate()
+                    proc.wait(timeout=30)
+                    raise optuna.TrialPruned(
+                        "Pruned at step={} with {}={}".format(
+                            metric_step, metric_name, value
                         )
-            ret = proc.wait()
+                    )
+        ret = proc.wait()
 
         trial.set_user_attr("run_name", run_name)
-        trial.set_user_attr("log_file", str(trial_log))
+        trial.set_user_attr("run_log_file", str(trial_log))
         trial.set_user_attr("cmd", " ".join(cmd))
 
         if ret != 0:
             raise RuntimeError(
-                "Trial process failed with exit code {}. See {}".format(ret, trial_log)
+                "Trial process failed with exit code {}. See log.".format(ret)
             )
         if best_metric is None:
-            raise RuntimeError(
-                "Metric `{}` not found in logs. See {}".format(metric_name, trial_log)
-            )
-
-        # keep objective monotonic with direction; optuna handles direction itself,
-        # but we store signed value for clarity/debug.
-        trial.set_user_attr("best_{}".format(metric_name), best_metric)
-        trial.set_user_attr(
-            "signed_best_{}".format(metric_name), metric_sign * best_metric
-        )
+            raise RuntimeError("Metric `{}` not found in logs.".format(metric_name))
         return best_metric
+
+    def _sample_cv_folds(trial_number: int) -> List[Tuple[int, int]]:
+        subjects = [int(s.strip()) for s in args.cv_subjects.split(",") if s.strip()]
+        pairs = [(v, t) for v, t in itertools.permutations(subjects, 2)]
+        rng = random.Random(args.cv_seed + trial_number)
+        rng.shuffle(pairs)
+        return pairs[: max(1, int(args.cv_folds))]
+
+    def objective(trial: optuna.Trial) -> float:
+        trial_log_path = (
+            study_out_dir / "trials" / ("trial_{:04d}.log".format(trial.number))
+        )
+        trial_log_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with trial_log_path.open("w", encoding="utf-8") as trial_log:
+            if args.mode == "single":
+                run_name = "opt-{}-t{:04d}".format(args.study_name, trial.number)
+                best_metric = _run_one_train(
+                    trial=trial,
+                    run_name=run_name,
+                    trial_log=trial_log,
+                )
+                trial.set_user_attr("log_file", str(trial_log_path))
+                trial.set_user_attr("best_{}".format(metric_name), best_metric)
+                trial.set_user_attr(
+                    "signed_best_{}".format(metric_name), metric_sign * best_metric
+                )
+                return best_metric
+
+            folds = _sample_cv_folds(trial.number)
+            fold_metrics = []
+            for fold_idx, (val_subj, test_subj) in enumerate(folds, start=1):
+                run_name = "opt-{}-t{:04d}-f{:02d}-v{}-t{}".format(
+                    args.study_name, trial.number, fold_idx, val_subj, test_subj
+                )
+                extra = [
+                    "datasets.train.protocol_mode=ssl_wearables",
+                    "datasets.val.protocol_mode=ssl_wearables",
+                    "datasets.test.protocol_mode=ssl_wearables",
+                    "datasets.train.val_subjects=[{}]".format(val_subj),
+                    "datasets.val.val_subjects=[{}]".format(val_subj),
+                    "datasets.test.val_subjects=[{}]".format(val_subj),
+                    "datasets.train.test_subjects=[{}]".format(test_subj),
+                    "datasets.val.test_subjects=[{}]".format(test_subj),
+                    "datasets.test.test_subjects=[{}]".format(test_subj),
+                ]
+                trial_log.write(
+                    "\n=== CV fold {}/{} (val={}, test={}) ===\n".format(
+                        fold_idx, len(folds), val_subj, test_subj
+                    )
+                )
+                fold_best = _run_one_train(
+                    trial=trial,
+                    run_name=run_name,
+                    trial_log=trial_log,
+                    extra_overrides=extra,
+                )
+                fold_metrics.append(float(fold_best))
+
+                fold_mean = float(mean(fold_metrics))
+                trial.report(fold_mean, step=fold_idx)
+                if trial.should_prune():
+                    raise optuna.TrialPruned(
+                        "Pruned at cv fold {} with mean {}={}".format(
+                            fold_idx, metric_name, fold_mean
+                        )
+                    )
+
+            cv_value = float(mean(fold_metrics))
+            trial.set_user_attr("log_file", str(trial_log_path))
+            trial.set_user_attr("cv_fold_metrics", fold_metrics)
+            trial.set_user_attr("best_{}".format(metric_name), cv_value)
+            trial.set_user_attr(
+                "signed_best_{}".format(metric_name), metric_sign * cv_value
+            )
+            return cv_value
 
     return objective
 
