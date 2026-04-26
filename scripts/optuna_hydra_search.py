@@ -16,6 +16,12 @@ from typing import Callable, Dict, List, Optional, Tuple
 import optuna
 
 METRIC_RE_TEMPLATE = r"^\s*{metric}\s*:\s*([-+eE0-9\.]+)\s*$"
+OOM_PATTERNS = (
+    "cuda out of memory",
+    "outofmemoryerror",
+    "cublas_status_alloc_failed",
+    "cuda error: out of memory",
+)
 
 
 def parse_args():
@@ -133,6 +139,11 @@ def try_parse_metric(line: str, metric_name: str) -> Optional[float]:
         return None
 
 
+def is_oom_line(line: str) -> bool:
+    low = line.lower()
+    return any(pat in low for pat in OOM_PATTERNS)
+
+
 def make_objective(args, study_out_dir: Path):
     metric_name = args.metric_name
     metric_sign = 1.0 if args.direction == "maximize" else -1.0
@@ -167,6 +178,7 @@ def make_objective(args, study_out_dir: Path):
 
         best_metric: Optional[float] = None
         metric_step = 0
+        oom_detected = False
         env = dict(os.environ)
         env["PYTHONUNBUFFERED"] = "1"
 
@@ -183,6 +195,17 @@ def make_objective(args, study_out_dir: Path):
         assert proc.stdout is not None
         for line in proc.stdout:
             trial_log.write(line)
+            if is_oom_line(line):
+                oom_detected = True
+                proc.terminate()
+                try:
+                    proc.wait(timeout=30)
+                except Exception:
+                    proc.kill()
+                    proc.wait(timeout=30)
+                raise optuna.TrialPruned(
+                    "Pruned due to OOM for run `{}`.".format(run_name)
+                )
             value = try_parse_metric(line, metric_name)
             if value is not None:
                 if best_metric is None:
@@ -209,6 +232,10 @@ def make_objective(args, study_out_dir: Path):
         trial.set_user_attr("cmd", " ".join(cmd))
 
         if ret != 0:
+            if oom_detected:
+                raise optuna.TrialPruned(
+                    "Pruned due to OOM for run `{}` (non-zero exit).".format(run_name)
+                )
             raise RuntimeError(
                 "Trial process failed with exit code {}. See log.".format(ret)
             )
