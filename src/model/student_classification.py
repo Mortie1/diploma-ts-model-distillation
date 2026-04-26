@@ -35,9 +35,9 @@ class StudentClassifier(nn.Module):
 
         # Channel-independent frontend: one shared encoder applied to each channel.
         self.feature = nn.Sequential(
-            nn.Conv1d(1, hidden_dim, kernel_size=7, padding=3),
+            nn.Conv1d(1, hidden_dim, kernel_size=7, padding=3, stride=2),
             nn.GELU(),
-            nn.Conv1d(hidden_dim, hidden_dim, kernel_size=5, padding=2),
+            nn.Conv1d(hidden_dim, hidden_dim, kernel_size=5, padding=2, stride=2),
             nn.GELU(),
         )
         self.encoder = TransformerEncoder(

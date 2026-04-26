@@ -15,7 +15,7 @@ model:
 
 optimizer:
   _target_: torch.optim.Adam
-  lr: 3e-4
+  lr: 3e-5
 
 lr_scheduler:
   _target_: torch.optim.lr_scheduler.CosineAnnealingLR
@@ -29,7 +29,7 @@ trainer:
   grad_accum_steps: 1
   warmup_ratio: 0.1
   warmup_steps: null
-  warmup_start_factor: 0.1
+  warmup_start_factor: 0.01
   amp_enabled: true
   amp_dtype: "bf16"
   compile_enabled: false
@@ -75,4 +75,4 @@ loss_function:
 
 dataloader:
   batch_size: 128
-  num_workers: 2
+  num_workers: 4

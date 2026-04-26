@@ -11,6 +11,6 @@ use_swiglu: False
 use_rope: True
 rope_base: 10_000
 channel_fusion: "concat"
-gradient_checkpointing: false
+gradient_checkpointing: true
 checkpoint_every_n_layers: 1
 checkpoint_use_reentrant: false

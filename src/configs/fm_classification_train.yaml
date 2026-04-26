@@ -26,7 +26,7 @@ trainer:
   warmup_steps: null
   warmup_start_factor: 0.1
   amp_enabled: true
-  amp_dtype: "bf16"
+  amp_dtype: "fp16"
   compile_enabled: false
   compile_backend: null
   compile_mode: null
