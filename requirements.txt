@@ -16,6 +16,7 @@ comet_ml
 hydra-core
 pyarrow
 pytest
+optuna
 
 black
 isort
