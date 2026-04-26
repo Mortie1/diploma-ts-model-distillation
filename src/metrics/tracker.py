@@ -36,6 +36,9 @@ class MetricTracker:
             value (float): metric value on the batch.
             n (int): how many times to count this value.
         """
+        # Support dynamic metric keys (e.g., extra loss components).
+        if key not in self._data.index:
+            self._data.loc[key, :] = [0.0, 0, 0.0]
         # if self.writer is not None:
         #     self.writer.add_scalar(key, value)
         self._data.loc[key, "total"] += value * n

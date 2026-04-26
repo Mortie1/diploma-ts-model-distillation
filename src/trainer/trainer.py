@@ -69,9 +69,14 @@ class Trainer(BaseTrainer):
             if should_step and self.lr_scheduler is not None:
                 self.lr_scheduler.step()
 
-        # update metrics for each loss (in case of multiple losses)
-        for loss_name in self.config.writer.loss_names:
-            metrics.update(loss_name, batch[loss_name].item())
+        # Log all scalar loss components returned by criterion.
+        # This covers multi-component objectives without manually listing keys.
+        for loss_name, loss_value in all_losses.items():
+            if isinstance(loss_value, torch.Tensor):
+                if loss_value.numel() == 1:
+                    metrics.update(loss_name, loss_value.detach().item())
+            elif isinstance(loss_value, (int, float)):
+                metrics.update(loss_name, float(loss_value))
 
         for met in metric_funcs:
             metrics.update(met.name, met(**batch))

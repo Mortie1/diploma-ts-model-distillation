@@ -341,6 +341,8 @@ class BaseTrainer:
         self.evaluation_metrics.reset()
         epoch_logits = []
         epoch_targets = []
+        last_batch_idx = None
+        last_batch = None
         with torch.no_grad():
             for batch_idx, batch in tqdm(
                 enumerate(dataloader),
@@ -357,19 +359,25 @@ class BaseTrainer:
                     if self._is_classification_logits_targets(logits, targets):
                         epoch_logits.append(logits.detach().cpu())
                         epoch_targets.append(targets.detach().cpu())
-            self.writer.set_step(epoch * self.epoch_len, part)
-            self._log_scalars(self.evaluation_metrics)
-            self._log_batch(
-                batch_idx, batch, part
-            )  # log only the last batch during inference
+                last_batch_idx = batch_idx
+                last_batch = batch
 
         logs = self.evaluation_metrics.result()
-        return self._overwrite_epoch_classification_metrics(
+        logs = self._overwrite_epoch_classification_metrics(
             logs=logs,
             metric_defs=self.metrics["inference"],
             epoch_logits=epoch_logits,
             epoch_targets=epoch_targets,
         )
+        if self.writer is not None:
+            # Log epoch-level val/test metrics to tracker (global classification scores).
+            self.writer.set_step(epoch * self.epoch_len, part)
+            for metric_name, metric_value in logs.items():
+                self.writer.add_scalar(metric_name, metric_value)
+            if last_batch_idx is not None and last_batch is not None:
+                # log only the last batch during inference
+                self._log_batch(last_batch_idx, last_batch, part)
+        return logs
 
     @staticmethod
     def _is_classification_logits_targets(logits, targets):
