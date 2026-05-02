@@ -26,8 +26,8 @@ trainer:
   warmup_steps: null
   warmup_start_factor: 0.1
   amp_enabled: true
-  amp_dtype: "fp16"
-  compile_enabled: false
+  amp_dtype: "bf16"
+  compile_enabled: null
   compile_backend: null
   compile_mode: null
   compile_dynamic: null
@@ -41,6 +41,7 @@ trainer:
   monitor: "max val_MacroF1"
   save_period: 1
   save_trainable_only: true
+  save_teacher_state: false
   early_stop: ${trainer.n_epochs}
   save_dir: "saved"
   seed: 42

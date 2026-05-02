@@ -172,6 +172,8 @@ class Inferencer(BaseTrainer):
         if self.save_path is not None:
             (self.save_path / part).mkdir(exist_ok=True, parents=True)
 
+        epoch_logits = []
+        epoch_targets = []
         with torch.no_grad():
             for batch_idx, batch in tqdm(
                 enumerate(dataloader),
@@ -184,7 +186,20 @@ class Inferencer(BaseTrainer):
                     part=part,
                     metrics=self.evaluation_metrics,
                 )
+                if "logits" in batch and "targets" in batch:
+                    logits = batch["logits"]
+                    targets = batch["targets"]
+                    if self._is_classification_logits_targets(logits, targets):
+                        epoch_logits.append(logits.detach().cpu())
+                        epoch_targets.append(targets.detach().cpu())
 
         if self.evaluation_metrics is None:
             return {}
-        return self.evaluation_metrics.result()
+        logs = self.evaluation_metrics.result()
+        logs = self._overwrite_epoch_classification_metrics(
+            logs=logs,
+            metric_defs=self.metrics["inference"],
+            epoch_logits=epoch_logits,
+            epoch_targets=epoch_targets,
+        )
+        return logs

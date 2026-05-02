@@ -1,5 +1,5 @@
 defaults:
-  - /model: student_classification
+  - /model: mantis_student
   - /writer: cometml
   - /metrics: classification
   - /datasets: ucr_gunpoint
@@ -46,6 +46,7 @@ trainer:
   monitor: "max val_MacroF1"
   save_period: 1
   save_trainable_only: true
+  save_teacher_state: false
   early_stop: ${trainer.n_epochs}
   save_dir: "saved"
   seed: 42

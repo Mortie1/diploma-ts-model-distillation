@@ -1,4 +1,4 @@
-_target_: src.model.StudentClassifier
+_target_: src.model.MantisStudentClassifier
 in_channels: 1
 n_classes: 2
 hidden_dim: 256
@@ -7,11 +7,15 @@ n_heads: 8
 n_layers: 6
 dropout: 0.1
 ff_mult: 2
-use_swiglu: True
-use_rope: True
+use_swiglu: true
+use_rope: true
 rope_base: 10_000
-use_cls_token: false
+use_cls_token: true
 channel_fusion: "concat"
+num_patches: 32
+tokgen_kernel_size: 41
+scalar_hidden_dim: 32
+tokgen_eps: 1e-5
 gradient_checkpointing: true
 checkpoint_every_n_layers: 1
 checkpoint_use_reentrant: false

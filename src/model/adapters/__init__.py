@@ -2,6 +2,10 @@ from src.model.adapters.classification.base import PlaceholderClassificationAdap
 from src.model.adapters.classification.chronos import ChronosClassificationAdapter
 from src.model.adapters.classification.chronos2 import Chronos2ClassificationAdapter
 from src.model.adapters.classification.hubert_mlp import HuBERTMLPClassificationAdapter
+from src.model.adapters.classification.mantis import (
+    MantisClassificationAdapter,
+    MantisV2ClassificationAdapter,
+)
 from src.model.adapters.classification.moment import MomentClassificationAdapter
 from src.model.adapters.classification.timesfm import TimesFMClassificationAdapter
 from src.model.adapters.classification.timesfm_hf import TimesFMHFClassificationAdapter
@@ -14,6 +18,8 @@ __all__ = [
     "ChronosClassificationAdapter",
     "Chronos2ClassificationAdapter",
     "HuBERTMLPClassificationAdapter",
+    "MantisClassificationAdapter",
+    "MantisV2ClassificationAdapter",
     "TimesFMClassificationAdapter",
     "TimesFMHFClassificationAdapter",
     "MomentClassificationAdapter",

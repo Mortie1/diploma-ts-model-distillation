@@ -14,6 +14,7 @@ set -euo pipefail
 
 # Optional hardcoded list (used only when no CLI args are passed).
 RUN_DIRS=(
+    /tmp/distill-hubertl-fl0-mantis-student-nodistill/results.tsv
   # "/tmp/pamap_cv_no_distill_hubert_l8_wristacc6"
   # "/tmp/pamap_cv_distill_lf10_hubert_l8_wristacc6"
 )

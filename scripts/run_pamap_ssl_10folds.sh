@@ -28,6 +28,7 @@ EPOCH_LEN="${EPOCH_LEN:-100}"
 BS="${BS:-128}"
 NUM_WORKERS="${NUM_WORKERS:-4}"
 LOG_STEP="${LOG_STEP:-10}"
+EXTRA_OVERRIDES="${EXTRA_OVERRIDES:-}"
 
 # Defaults for current PAMAP2 ssl config in this repo:
 # window=1000, stride=500, feature_set=wrist, imu_sensors=acc6, include_hr=false -> 3 channels.
@@ -136,7 +137,8 @@ for row in "${FOLDS[@]}"; do
     datasets.test.val_subjects="[${val_subj}]" \
     datasets.train.test_subjects="[${test_subj}]" \
     datasets.val.test_subjects="[${test_subj}]" \
-    datasets.test.test_subjects="[${test_subj}]" > "$log_file" 2>&1
+    datasets.test.test_subjects="[${test_subj}]" \
+    ${EXTRA_OVERRIDES} > "$log_file" 2>&1
   rc=$?
   set -e
 
@@ -172,7 +174,8 @@ for row in "${FOLDS[@]}"; do
         datasets.test.val_subjects="[${val_subj}]" \
         datasets.train.test_subjects="[${test_subj}]" \
         datasets.val.test_subjects="[${test_subj}]" \
-        datasets.test.test_subjects="[${test_subj}]" > "$infer_log" 2>&1
+        datasets.test.test_subjects="[${test_subj}]" \
+        ${EXTRA_OVERRIDES} > "$infer_log" 2>&1
       infer_rc=$?
       set -e
       if [[ $infer_rc -ne 0 ]]; then

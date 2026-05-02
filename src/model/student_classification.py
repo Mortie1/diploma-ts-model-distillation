@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 from src.model.modules import TransformerEncoder
@@ -22,6 +23,7 @@ class StudentClassifier(nn.Module):
         use_swiglu: bool = False,
         use_rope: bool = True,
         rope_base: int = 10_000,
+        use_cls_token: bool = True,
         channel_fusion: str = "concat",
         gradient_checkpointing: bool = False,
         checkpoint_every_n_layers: int = 1,
@@ -32,6 +34,7 @@ class StudentClassifier(nn.Module):
         self.channel_fusion = str(channel_fusion).lower()
         if self.channel_fusion not in {"concat", "mean"}:
             raise ValueError("channel_fusion must be one of: concat, mean.")
+        self.use_cls_token = bool(use_cls_token)
 
         # Channel-independent frontend: one shared encoder applied to each channel.
         self.feature = nn.Sequential(
@@ -52,6 +55,9 @@ class StudentClassifier(nn.Module):
             gradient_checkpointing=gradient_checkpointing,
             checkpoint_every_n_layers=checkpoint_every_n_layers,
             checkpoint_use_reentrant=checkpoint_use_reentrant,
+        )
+        self.cls_token = (
+            nn.Parameter(torch.zeros(1, 1, hidden_dim)) if self.use_cls_token else None
         )
         self.up = nn.Linear(hidden_dim, output_dim)
         head_in = (
@@ -77,14 +83,17 @@ class StudentClassifier(nn.Module):
 
         x = inputs.reshape(bsz * n_channels, 1, seq_len)
         feats = self.feature(x).transpose(1, 2)
+        if self.cls_token is not None:
+            cls = self.cls_token.expand(feats.size(0), -1, -1)
+            feats = torch.cat([cls, feats], dim=1)
         encoded = self.encoder(feats)
-        pooled = encoded.mean(dim=1)
+        pooled = encoded[:, 0, :] if self.cls_token is not None else encoded.mean(dim=1)
         channel_feats = self.up(pooled).reshape(bsz, n_channels, -1)
         if self.channel_fusion == "concat":
             feats = channel_feats.reshape(bsz, -1)
         else:
             feats = channel_feats.mean(dim=1)
-        logits = self.head(nn.functional.gelu(feats))
+        logits = self.head(F.gelu(feats))
         return {
             "logits": logits,
             "student_hidden": feats,

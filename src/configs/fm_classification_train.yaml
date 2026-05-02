@@ -40,6 +40,7 @@ trainer:
   override: true
   monitor: "max val_MacroF1"
   save_period: 1
+  save_teacher_state: false
   early_stop: ${trainer.n_epochs}
   save_dir: "saved"
   seed: 42

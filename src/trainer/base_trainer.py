@@ -645,8 +645,19 @@ class BaseTrainer:
             "monitor_best": self.mnt_best,
             "config": self.config,
         }
-        if self.distillation is not None:
+        save_teacher_state = bool(self.cfg_trainer.get("save_teacher_state", False))
+        if (
+            self.distillation is not None
+            and bool(getattr(self.distillation, "enabled", True))
+            and save_teacher_state
+        ):
             state["distillation_state_dict"] = self.distillation.state_dict()
+        elif self.distillation is not None and bool(
+            getattr(self.distillation, "enabled", True)
+        ):
+            self.logger.info(
+                "Skipping distillation_state_dict save (trainer.save_teacher_state=false)."
+            )
         filename = str(self.checkpoint_dir / f"checkpoint-epoch{epoch}.pth")
         if not (only_best and save_best):
             torch.save(state, filename)
@@ -810,6 +821,33 @@ class BaseTrainer:
         """
         state_dict = checkpoint["state_dict"]
         state_kind = str(checkpoint.get("state_dict_kind", "full")).lower()
+        model_state_keys = set(self.model.state_dict().keys())
+
+        def _try_key_normalization(sd: dict):
+            # Case 1: checkpoint from torch.compile model -> keys start with "_orig_mod."
+            if any(k.startswith("_orig_mod.") for k in sd.keys()) and not any(
+                k.startswith("_orig_mod.") for k in model_state_keys
+            ):
+                stripped = {
+                    (k[len("_orig_mod.") :] if k.startswith("_orig_mod.") else k): v
+                    for k, v in sd.items()
+                }
+                overlap = sum(1 for k in stripped.keys() if k in model_state_keys)
+                if overlap > 0:
+                    return stripped
+
+            # Case 2: checkpoint from non-compiled model -> current model compiled.
+            if (not any(k.startswith("_orig_mod.") for k in sd.keys())) and any(
+                k.startswith("_orig_mod.") for k in model_state_keys
+            ):
+                prefixed = {f"_orig_mod.{k}": v for k, v in sd.items()}
+                overlap = sum(1 for k in prefixed.keys() if k in model_state_keys)
+                if overlap > 0:
+                    return prefixed
+
+            return sd
+
+        state_dict = _try_key_normalization(state_dict)
         if state_kind == "trainable_only":
             missing, unexpected = self.model.load_state_dict(state_dict, strict=False)
             if hasattr(self, "logger"):

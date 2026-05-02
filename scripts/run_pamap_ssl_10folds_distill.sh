@@ -15,6 +15,10 @@ if [[ -f .venv/bin/activate ]]; then
 fi
 
 MODEL_TAG="${MODEL_TAG:-student}"
+# Hydra model config group (src/configs/model/*.yaml), e.g. student_classification|mantis_student
+MODEL_CONFIG="${MODEL_CONFIG:-student_classification}"
+# Optional explicit _target_ override (usually not needed when MODEL_CONFIG is set).
+MODEL_TARGET="${MODEL_TARGET:-src.model.StudentClassifier}"
 N_FOLDS="${N_FOLDS:-10}"
 FOLD_SEED="${FOLD_SEED:-42}"
 
@@ -44,6 +48,9 @@ TEACHER_PCA_CENTER="${TEACHER_PCA_CENTER:-true}"
 LAMBDA_FEAT="${LAMBDA_FEAT:-0.05}"
 LAMBDA_LOGIT="${LAMBDA_LOGIT:-0.0}"
 FEAT_LOSS_TYPE="${FEAT_LOSS_TYPE:-cosine}"   # mse|cosine
+EXTRA_OVERRIDES="${EXTRA_OVERRIDES:-}"
+EXTRA_OVERRIDES_TRAIN="${EXTRA_OVERRIDES_TRAIN:-${EXTRA_OVERRIDES}}"
+EXTRA_OVERRIDES_INFER="${EXTRA_OVERRIDES_INFER:-${EXTRA_OVERRIDES}}"
 
 LAMBDA_TAG="$(echo "${LAMBDA_FEAT}" | tr '.' 'p' | tr -cd '[:alnum:]')"
 RUN_BASENAME="${RUN_BASENAME:-dist-${MODEL_TAG}-lf${LAMBDA_TAG}}"
@@ -124,6 +131,8 @@ for row in "${FOLDS[@]}"; do
   set +e
   python train.py -cn=distill_train \
     datasets=pamap2 \
+    model="${MODEL_CONFIG}" \
+    model._target_="${MODEL_TARGET}" \
     model.n_classes="${N_CLASSES}" \
     model.in_channels="${IN_CHANNELS}" \
     trainer.require_cuda="${REQUIRE_CUDA}" \
@@ -160,7 +169,8 @@ for row in "${FOLDS[@]}"; do
     distillation.teacher_pca_center="${TEACHER_PCA_CENTER}" \
     loss_function.lambda_feat="${LAMBDA_FEAT}" \
     loss_function.lambda_logit="${LAMBDA_LOGIT}" \
-    loss_function.feat_loss_type="${FEAT_LOSS_TYPE}" > "$log_file" 2>&1
+    loss_function.feat_loss_type="${FEAT_LOSS_TYPE}" \
+    ${EXTRA_OVERRIDES_TRAIN} > "$log_file" 2>&1
   rc=$?
   set -e
 
@@ -178,6 +188,8 @@ for row in "${FOLDS[@]}"; do
       set +e
       python inference.py -cn=distill_inference \
         datasets=pamap2 \
+        model="${MODEL_CONFIG}" \
+        model._target_="${MODEL_TARGET}" \
         model.n_classes="${N_CLASSES}" \
         model.in_channels="${IN_CHANNELS}" \
         inferencer.require_cuda="${REQUIRE_CUDA}" \
@@ -192,7 +204,8 @@ for row in "${FOLDS[@]}"; do
         datasets.test.val_subjects="[${val_subj}]" \
         datasets.train.test_subjects="[${test_subj}]" \
         datasets.val.test_subjects="[${test_subj}]" \
-        datasets.test.test_subjects="[${test_subj}]" > "$infer_log" 2>&1
+        datasets.test.test_subjects="[${test_subj}]" \
+        ${EXTRA_OVERRIDES_INFER} > "$infer_log" 2>&1
       infer_rc=$?
       set -e
       if [[ $infer_rc -ne 0 ]]; then

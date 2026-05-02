@@ -31,19 +31,21 @@ class DistillationBridge(nn.Module):
         teacher_pca_center: bool = True,
     ):
         super().__init__()
-        self.enabled = enabled
+        self.enabled = bool(enabled)
         self.input_key = input_key
 
-        self.teacher = AudioTeacher(
-            backend=teacher_backend,
-            model_name=teacher_model_name,
-            hidden_dim=teacher_hidden_dim,
-            layer_idx=teacher_layer_idx,
-            per_channel=teacher_per_channel,
-            channel_reduce=teacher_channel_reduce,
-            channel_chunk_size=teacher_channel_chunk_size,
-            freeze_teacher=freeze_teacher,
-        )
+        self.teacher = None
+        if self.enabled:
+            self.teacher = AudioTeacher(
+                backend=teacher_backend,
+                model_name=teacher_model_name,
+                hidden_dim=teacher_hidden_dim,
+                layer_idx=teacher_layer_idx,
+                per_channel=teacher_per_channel,
+                channel_reduce=teacher_channel_reduce,
+                channel_chunk_size=teacher_channel_chunk_size,
+                freeze_teacher=freeze_teacher,
+            )
         self.teacher_projection = str(teacher_projection).lower()
         if self.teacher_projection not in {"none", "pca"}:
             raise ValueError("teacher_projection must be one of: none, pca")
@@ -138,6 +140,10 @@ class DistillationBridge(nn.Module):
     def forward(self, **batch):
         if not self.enabled:
             return {}
+        if self.teacher is None:
+            raise RuntimeError(
+                "Distillation is enabled, but teacher is not initialized."
+            )
 
         if self.input_key not in batch:
             raise KeyError(f"Missing input key `{self.input_key}` for distillation")
