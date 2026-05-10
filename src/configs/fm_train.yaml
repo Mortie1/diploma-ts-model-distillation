@@ -10,12 +10,12 @@ defaults:
 
 optimizer:
   _target_: torch.optim.Adam
-  lr: 1e-3
+  lr: 3e-4
 
 lr_scheduler:
-  _target_: torch.optim.lr_scheduler.StepLR
-  gamma: 0.9
-  step_size: 200
+  _target_: torch.optim.lr_scheduler.CosineAnnealingLR
+  T_max: auto
+  eta_min: 0.0
 
 trainer:
   log_step: 10

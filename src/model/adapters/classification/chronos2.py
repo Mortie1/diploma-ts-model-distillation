@@ -83,7 +83,6 @@ class Chronos2ClassificationAdapter(BaseClassificationAdapter):
                 .expand(batch_size, n_channels)
                 .reshape(-1)
             )
-            group_ids = None
             needs_channel_pool = True
         elif x.ndim == 2:
             context = x
@@ -96,22 +95,24 @@ class Chronos2ClassificationAdapter(BaseClassificationAdapter):
 
         context = context.to(dtype=torch.float32)
 
-        def _encode() -> torch.Tensor:
-            encoder_outputs, *_ = self.provider_model.encode(
+        def _encode() -> tuple[torch.Tensor, int]:
+            encoder_outputs, _loc_scale, _fut_mask, n_ctx = self.provider_model.encode(
                 context=context,
                 group_ids=group_ids,
             )
             if hasattr(encoder_outputs, "last_hidden_state"):
-                return encoder_outputs.last_hidden_state
-            return encoder_outputs[0]
+                return encoder_outputs.last_hidden_state, int(n_ctx)
+            return encoder_outputs[0], int(n_ctx)
 
         if self.freeze_provider:
             with torch.no_grad():
-                hidden = _encode().detach()
+                hidden, n_ctx = _encode()
+                hidden = hidden.detach()
         else:
-            hidden = _encode()
+            hidden, n_ctx = _encode()
 
-        pooled = hidden.mean(dim=1)
+        # Pool only over context patches (exclude REG token and future patch).
+        pooled = hidden[:, :n_ctx, :].mean(dim=1)
 
         # Project channel embeddings (e.g., 768 -> 512/256).
         pooled = self.provider_proj(pooled)

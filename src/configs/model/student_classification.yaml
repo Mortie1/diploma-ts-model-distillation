@@ -11,6 +11,7 @@ use_swiglu: True
 use_rope: True
 rope_base: 10_000
 use_cls_token: false
+channel_mode: "independent"
 channel_fusion: "concat"
 gradient_checkpointing: false
 checkpoint_every_n_layers: 1
