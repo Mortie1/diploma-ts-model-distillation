@@ -16,13 +16,21 @@ class TiRexClassificationAdapter(BaseClassificationAdapter):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.channel_fusion = str(kwargs.get("channel_fusion", "concat")).lower()
+        if self.channel_fusion not in {"mean", "concat"}:
+            raise ValueError("channel_fusion must be one of: mean, concat.")
         self.provider_head: Optional[nn.Linear] = None
         if self.provider_model is not None:
             hidden_dim = int(
                 getattr(self.provider_model.out_norm, "weight", torch.empty(0)).numel()
             )
             if hidden_dim > 0:
-                self.provider_head = nn.Linear(hidden_dim, self.n_classes)
+                head_in = (
+                    hidden_dim * int(self.in_channels)
+                    if self.channel_fusion == "concat"
+                    else hidden_dim
+                )
+                self.provider_head = nn.Linear(head_in, self.n_classes)
 
     def _init_provider_model(self):
         try:
@@ -38,7 +46,23 @@ class TiRexClassificationAdapter(BaseClassificationAdapter):
         if self.provider_model is None or self.provider_head is None:
             return None
 
-        series = x.mean(dim=1) if x.ndim == 3 else x
+        if x.ndim == 3:
+            bsz, n_channels, seq_len = x.shape
+            if n_channels != int(self.in_channels):
+                raise ValueError(
+                    f"TiRexClassificationAdapter expected in_channels={self.in_channels}, "
+                    f"got {n_channels}."
+                )
+            series = x.reshape(bsz * n_channels, seq_len)
+            needs_channel_pool = True
+        elif x.ndim == 2:
+            bsz, seq_len = x.shape
+            n_channels = 1
+            series = x
+            needs_channel_pool = False
+        else:
+            raise ValueError(f"Expected input rank 2/3, got shape={tuple(x.shape)}")
+
         series = series.to(dtype=torch.float32)
 
         if self.freeze_provider:
@@ -57,6 +81,17 @@ class TiRexClassificationAdapter(BaseClassificationAdapter):
             raise RuntimeError(
                 f"Unexpected TiRex embedding shape: {tuple(embeds.shape)}. "
                 "Expected rank 3 or 4 tensor."
+            )
+
+        if needs_channel_pool:
+            features = features.reshape(bsz, n_channels, -1)
+            if self.channel_fusion == "mean":
+                features = features.mean(dim=1)
+            else:
+                features = features.reshape(bsz, -1)
+        elif self.channel_fusion == "concat" and int(self.in_channels) != 1:
+            raise ValueError(
+                "Received [B, T] input while channel_fusion=concat and in_channels>1."
             )
 
         return self.provider_head(features)

@@ -16,6 +16,7 @@ wandb
 comet_ml
 hydra-core
 pyarrow
+wfdb
 pytest
 optuna
 

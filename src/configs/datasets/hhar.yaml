@@ -1,0 +1,42 @@
+train:
+  _target_: src.datasets.HHARDataset
+  root: "data/raw/hhar"
+  split: "train"
+  window_length: 200
+  stride: 100
+  upsample_factor: 2
+  max_samples: 1800
+  sampling_seed: 42
+  fold_index: 0
+  n_folds: 5
+  normalize: true
+  device_filter: "watch"
+  instance_transforms: ${transforms.instance_transforms.train}
+val:
+  _target_: src.datasets.HHARDataset
+  root: "data/raw/hhar"
+  split: "val"
+  window_length: 200
+  stride: 100
+  upsample_factor: 2
+  max_samples: 600
+  sampling_seed: 42
+  fold_index: 0
+  n_folds: 5
+  normalize: true
+  device_filter: "watch"
+  instance_transforms: ${transforms.instance_transforms.inference}
+test:
+  _target_: src.datasets.HHARDataset
+  root: "data/raw/hhar"
+  split: "test"
+  window_length: 200
+  stride: 100
+  upsample_factor: 2
+  max_samples: 600
+  sampling_seed: 42
+  fold_index: 0
+  n_folds: 5
+  normalize: true
+  device_filter: "watch"
+  instance_transforms: ${transforms.instance_transforms.inference}

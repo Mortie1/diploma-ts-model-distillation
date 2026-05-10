@@ -42,6 +42,13 @@ class PAMAP2Dataset(BaseDataset):
         "val": [107],
         "test": [108],
     }
+    # Article-like 2s/100Hz setup (12 classes, 5-fold style can be emulated via subject overrides).
+    _ACTIVITY_IDS_LEG_12 = [1, 2, 3, 4, 5, 6, 7, 12, 13, 16, 17, 24]
+    _SPLIT_SUBJECTS_LEG_12 = {
+        "train": [101, 102, 103, 104, 105, 106],
+        "val": [107],
+        "test": [108],
+    }
 
     def __init__(
         self,
@@ -49,6 +56,7 @@ class PAMAP2Dataset(BaseDataset):
         split: str,
         window_length: int = 256,
         stride: int = 128,
+        upsample_factor: int = 1,
         feature_set: str = "all",
         imu_sensors: str = "all",
         protocol_mode: str = "default",
@@ -76,6 +84,8 @@ class PAMAP2Dataset(BaseDataset):
             )
         if window_length <= 0 or stride <= 0:
             raise ValueError("window_length and stride must be positive.")
+        if upsample_factor <= 0:
+            raise ValueError("upsample_factor must be > 0.")
         self._activity_to_index = {aid: idx for idx, aid in enumerate(activity_ids)}
 
         root_path = Path(root)
@@ -99,6 +109,7 @@ class PAMAP2Dataset(BaseDataset):
             "split": split_key,
             "window_length": int(window_length),
             "stride": int(stride),
+            "upsample_factor": int(upsample_factor),
             "feature_set": str(feature_set),
             "imu_sensors": str(imu_sensors),
             "protocol_mode": protocol_key,
@@ -155,6 +166,9 @@ class PAMAP2Dataset(BaseDataset):
                     imu_sensors=imu_sensors,
                 )
                 features = self._fill_nan_columns(features)
+                if upsample_factor > 1:
+                    features = self._upsample_series(features, factor=upsample_factor)
+                    activity = self._upsample_labels(activity, factor=upsample_factor)
 
                 n = len(activity)
                 if n < window_length:
@@ -209,6 +223,33 @@ class PAMAP2Dataset(BaseDataset):
         features = features.copy()
         features[nan_rows, nan_cols] = col_median[nan_cols]
         return features
+
+    @staticmethod
+    def _upsample_series(x: np.ndarray, factor: int) -> np.ndarray:
+        if factor == 1:
+            return x
+        t = x.shape[0]
+        if t <= 1:
+            return x
+        t_new = t * factor
+        src = np.arange(t, dtype=np.float32)
+        dst = np.linspace(0.0, float(t - 1), num=t_new, dtype=np.float32)
+        out = np.empty((t_new, x.shape[1]), dtype=np.float32)
+        for c in range(x.shape[1]):
+            out[:, c] = np.interp(dst, src, x[:, c]).astype(np.float32)
+        return out
+
+    @staticmethod
+    def _upsample_labels(y: np.ndarray, factor: int) -> np.ndarray:
+        if factor == 1:
+            return y
+        t = y.shape[0]
+        if t <= 1:
+            return y
+        t_new = t * factor
+        dst = np.linspace(0.0, float(t - 1), num=t_new, dtype=np.float32)
+        idx = np.clip(np.round(dst).astype(np.int64), 0, t - 1)
+        return y[idx]
 
     @staticmethod
     def _select_features(
@@ -315,9 +356,12 @@ class PAMAP2Dataset(BaseDataset):
             split_subjects = {
                 k: list(v) for k, v in cls._SPLIT_SUBJECTS_DEFAULT.items()
             }
-        elif protocol_mode in {"ssl", "ssl_wearables"}:
+        elif protocol_mode in {"ssl", "ssl_wearables", "yuan24_wrist10s"}:
             activity_ids = cls._ACTIVITY_IDS_SSL
             split_subjects = {k: list(v) for k, v in cls._SPLIT_SUBJECTS_SSL.items()}
+        elif protocol_mode in {"hare22_leg2s", "leg12_2s"}:
+            activity_ids = cls._ACTIVITY_IDS_LEG_12
+            split_subjects = {k: list(v) for k, v in cls._SPLIT_SUBJECTS_LEG_12.items()}
         else:
             raise ValueError(
                 f"Unknown protocol_mode `{protocol_mode}`. "
@@ -338,14 +382,15 @@ class PAMAP2Dataset(BaseDataset):
             if custom["train"] is not None:
                 split_subjects["train"] = custom["train"]
             else:
-                # Derive train from protocol subjects when only val/test are specified.
-                universe = set(
-                    cls._SPLIT_SUBJECTS_DEFAULT["train"]
-                    + cls._SPLIT_SUBJECTS_DEFAULT["val"]
-                    + cls._SPLIT_SUBJECTS_DEFAULT["test"]
-                )
-                if protocol_mode in {"ssl", "ssl_wearables"}:
-                    universe.discard(109)
+                # Derive train from the protocol's own subject universe so that subjects
+                # outside the protocol (e.g. subject 109 in ssl/leg protocols) are excluded.
+                if protocol_mode in {"ssl", "ssl_wearables", "yuan24_wrist10s"}:
+                    proto_splits = cls._SPLIT_SUBJECTS_SSL
+                elif protocol_mode in {"hare22_leg2s", "leg12_2s"}:
+                    proto_splits = cls._SPLIT_SUBJECTS_LEG_12
+                else:
+                    proto_splits = cls._SPLIT_SUBJECTS_DEFAULT
+                universe = {s for subs in proto_splits.values() for s in subs}
                 held_out = set(split_subjects["val"]) | set(split_subjects["test"])
                 split_subjects["train"] = sorted(universe - held_out)
 

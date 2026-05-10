@@ -1,0 +1,33 @@
+train:
+  _target_: src.datasets.WESADDataset
+  root: "data/raw/wesad"
+  split: "train"
+  window_length: 3840
+  stride: 1920
+  val_subject: 2
+  test_subject: 3
+  allowed_labels: [1, 2, 3, 4]
+  normalize: true
+  instance_transforms: ${transforms.instance_transforms.train}
+val:
+  _target_: src.datasets.WESADDataset
+  root: "data/raw/wesad"
+  split: "val"
+  window_length: 3840
+  stride: 1920
+  val_subject: 2
+  test_subject: 3
+  allowed_labels: [1, 2, 3, 4]
+  normalize: true
+  instance_transforms: ${transforms.instance_transforms.inference}
+test:
+  _target_: src.datasets.WESADDataset
+  root: "data/raw/wesad"
+  split: "test"
+  window_length: 3840
+  stride: 1920
+  val_subject: 2
+  test_subject: 3
+  allowed_labels: [1, 2, 3, 4]
+  normalize: true
+  instance_transforms: ${transforms.instance_transforms.inference}

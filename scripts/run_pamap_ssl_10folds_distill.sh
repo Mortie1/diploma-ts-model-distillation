@@ -31,6 +31,7 @@ NUM_WORKERS="${NUM_WORKERS:-4}"
 LOG_STEP="${LOG_STEP:-10}"
 GRAD_ACCUM_STEPS="${GRAD_ACCUM_STEPS:-1}"
 
+DATASETS_CONFIG="${DATASETS_CONFIG:-pamap2_wrist10s}"
 N_CLASSES="${N_CLASSES:-8}"
 IN_CHANNELS="${IN_CHANNELS:-3}"
 
@@ -39,7 +40,7 @@ TEACHER_MODEL_NAME="${TEACHER_MODEL_NAME:-facebook/hubert-large-ll60k}"
 TEACHER_HIDDEN_DIM="${TEACHER_HIDDEN_DIM:-768}"
 TEACHER_LAYER_IDX="${TEACHER_LAYER_IDX:-8}"
 TEACHER_PER_CHANNEL="${TEACHER_PER_CHANNEL:-true}"
-TEACHER_CHANNEL_REDUCE="${TEACHER_CHANNEL_REDUCE:-mean}"
+TEACHER_CHANNEL_REDUCE="${TEACHER_CHANNEL_REDUCE:-concat}"
 TEACHER_CHANNEL_CHUNK_SIZE="${TEACHER_CHANNEL_CHUNK_SIZE:-16}"
 TEACHER_PROJECTION="${TEACHER_PROJECTION:-none}"   # none|pca
 TEACHER_PCA_DIM="${TEACHER_PCA_DIM:-512}"
@@ -130,7 +131,7 @@ for row in "${FOLDS[@]}"; do
 
   set +e
   python train.py -cn=distill_train \
-    datasets=pamap2 \
+    datasets="${DATASETS_CONFIG}" \
     model="${MODEL_CONFIG}" \
     model._target_="${MODEL_TARGET}" \
     model.n_classes="${N_CLASSES}" \
@@ -187,7 +188,7 @@ for row in "${FOLDS[@]}"; do
     else
       set +e
       python inference.py -cn=distill_inference \
-        datasets=pamap2 \
+        datasets="${DATASETS_CONFIG}" \
         model="${MODEL_CONFIG}" \
         model._target_="${MODEL_TARGET}" \
         model.n_classes="${N_CLASSES}" \

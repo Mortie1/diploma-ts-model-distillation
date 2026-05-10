@@ -1,0 +1,33 @@
+train:
+  _target_: src.datasets.MotionSenseDataset
+  root: "data/raw/motionsense"
+  split: "train"
+  window_length: 400
+  stride: 200
+  upsample_factor: 4
+  fold_index: 0
+  n_folds: 5
+  normalize: true
+  instance_transforms: ${transforms.instance_transforms.train}
+val:
+  _target_: src.datasets.MotionSenseDataset
+  root: "data/raw/motionsense"
+  split: "val"
+  window_length: 400
+  stride: 200
+  upsample_factor: 4
+  fold_index: 0
+  n_folds: 5
+  normalize: true
+  instance_transforms: ${transforms.instance_transforms.inference}
+test:
+  _target_: src.datasets.MotionSenseDataset
+  root: "data/raw/motionsense"
+  split: "test"
+  window_length: 400
+  stride: 200
+  upsample_factor: 4
+  fold_index: 0
+  n_folds: 5
+  normalize: true
+  instance_transforms: ${transforms.instance_transforms.inference}

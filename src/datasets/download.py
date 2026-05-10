@@ -17,6 +17,13 @@ PAMAP2_URL = (
     "https://archive.ics.uci.edu/ml/machine-learning-databases/00231/PAMAP2_Dataset.zip"
 )
 PTBXL_URL = "https://physionet.org/static/published-projects/ptb-xl/ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.3.zip"
+OPPORTUNITY_URL = (
+    "https://archive.ics.uci.edu/static/public/226/opportunity+activity+recognition.zip"
+)
+HHAR_URL = "https://archive.ics.uci.edu/static/public/344/heterogeneity+activity+recognition.zip"
+MOTIONSENSE_URL = "https://raw.githubusercontent.com/mmalekzadeh/motion-sense/master/data/A_DeviceMotion_data.zip"
+WESAD_URL = "https://uni-siegen.sciebo.de/s/HGdUkoNlW1Ub0Gx/download"
+MITBIH_URL = "https://physionet.org/static/published-projects/mitdb/mit-bih-arrhythmia-database-1.0.0.zip"
 ETT_URLS = {
     "ETTh1": "https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTh1.csv",
     "ETTh2": "https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTh2.csv",
@@ -137,6 +144,96 @@ def maybe_download_ptbxl(root: Path) -> None:
     with zipfile.ZipFile(zip_path) as zf:
         zf.extractall(root)
     logger.info("PTB-XL extracted to %s", root)
+
+
+def _download_stream(url: str, dst_path: Path, desc: str) -> None:
+    with urllib.request.urlopen(url) as resp:  # nosec B310
+        total = int(resp.headers.get("Content-Length", "0") or 0)
+        with dst_path.open("wb") as f:
+            with tqdm(
+                total=total if total > 0 else None,
+                unit="B",
+                unit_scale=True,
+                unit_divisor=1024,
+                desc=desc,
+            ) as pbar:
+                while True:
+                    chunk = resp.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    pbar.update(len(chunk))
+
+
+def _extract_zip(zip_path: Path, root: Path, desc: str) -> None:
+    logger.info("Extracting %s archive %s", desc, zip_path)
+    with zipfile.ZipFile(zip_path) as zf:
+        zf.extractall(root)
+    logger.info("%s extracted to %s", desc, root)
+
+
+def maybe_download_opportunity(root: Path) -> None:
+    candidate = root / "OpportunityUCIDataset" / "dataset"
+    if candidate.exists():
+        logger.info("Opportunity already present at %s", candidate)
+        return
+    root.mkdir(parents=True, exist_ok=True)
+    zip_path = root / "opportunity.zip"
+    logger.info("Downloading Opportunity from %s", OPPORTUNITY_URL)
+    _download_stream(OPPORTUNITY_URL, zip_path, desc="download opportunity")
+    _extract_zip(zip_path, root, desc="Opportunity")
+
+
+def maybe_download_hhar(root: Path) -> None:
+    if any(root.rglob("*.csv")):
+        logger.info("HHAR already present at %s", root)
+        return
+    root.mkdir(parents=True, exist_ok=True)
+    # UCI HHAR is a zip-of-zips: the outer zip contains inner zips with the actual CSVs.
+    # If the outer zip was already extracted, skip re-download and go straight to inner zips.
+    inner_zips = [z for z in sorted(root.glob("*.zip")) if z.name != "hhar.zip"]
+    if not inner_zips:
+        zip_path = root / "hhar.zip"
+        logger.info("Downloading HHAR from %s", HHAR_URL)
+        _download_stream(HHAR_URL, zip_path, desc="download hhar")
+        _extract_zip(zip_path, root, desc="HHAR")
+        inner_zips = [z for z in sorted(root.glob("*.zip")) if z.name != "hhar.zip"]
+    for inner_zip in inner_zips:
+        _extract_zip(inner_zip, root, desc=f"HHAR ({inner_zip.name})")
+
+
+def maybe_download_motionsense(root: Path) -> None:
+    candidate = root / "A_DeviceMotion_data"
+    if candidate.exists():
+        logger.info("MotionSense already present at %s", candidate)
+        return
+    root.mkdir(parents=True, exist_ok=True)
+    zip_path = root / "motionsense.zip"
+    logger.info("Downloading MotionSense from %s", MOTIONSENSE_URL)
+    _download_stream(MOTIONSENSE_URL, zip_path, desc="download motionsense")
+    _extract_zip(zip_path, root, desc="MotionSense")
+
+
+def maybe_download_wesad(root: Path) -> None:
+    if any((root / name).exists() for name in ("WESAD", "S2", "S3")):
+        logger.info("WESAD already present at %s", root)
+        return
+    root.mkdir(parents=True, exist_ok=True)
+    zip_path = root / "wesad.zip"
+    logger.info("Downloading WESAD from %s", WESAD_URL)
+    _download_stream(WESAD_URL, zip_path, desc="download wesad")
+    _extract_zip(zip_path, root, desc="WESAD")
+
+
+def maybe_download_mitbih(root: Path) -> None:
+    if any(root.glob("*.hea")) and any(root.glob("*.dat")):
+        logger.info("MIT-BIH already present at %s", root)
+        return
+    root.mkdir(parents=True, exist_ok=True)
+    zip_path = root / "mitbih.zip"
+    logger.info("Downloading MIT-BIH from %s", MITBIH_URL)
+    _download_stream(MITBIH_URL, zip_path, desc="download mitbih")
+    _extract_zip(zip_path, root, desc="MIT-BIH")
 
 
 def maybe_download_ett(csv_path: Path) -> None:

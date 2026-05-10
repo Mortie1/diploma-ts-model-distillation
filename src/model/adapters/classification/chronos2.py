@@ -77,12 +77,12 @@ class Chronos2ClassificationAdapter(BaseClassificationAdapter):
             # Multichannel handling: each channel is encoded as an independent
             # univariate series, and channels of the same sample share group_id.
             context = x.reshape(batch_size * n_channels, context_len)
-            # group_ids = (
-            #     torch.arange(batch_size, device=x.device, dtype=torch.long)
-            #     .unsqueeze(1)
-            #     .expand(batch_size, n_channels)
-            #     .reshape(-1)
-            # )
+            group_ids = (
+                torch.arange(batch_size, device=x.device, dtype=torch.long)
+                .unsqueeze(1)
+                .expand(batch_size, n_channels)
+                .reshape(-1)
+            )
             group_ids = None
             needs_channel_pool = True
         elif x.ndim == 2:
@@ -111,13 +111,7 @@ class Chronos2ClassificationAdapter(BaseClassificationAdapter):
         else:
             hidden = _encode()
 
-        # For concat fusion, concatenate channel embeddings into one large vector.
-        # We do not concatenate along time: use last token per channel.
-        # For non-concat fusion, also use last token representation.
-        if self.channel_fusion == "concat":
-            pooled = hidden[:, -1, :]
-        else:
-            pooled = hidden[:, -1, :]
+        pooled = hidden.mean(dim=1)
 
         # Project channel embeddings (e.g., 768 -> 512/256).
         pooled = self.provider_proj(pooled)

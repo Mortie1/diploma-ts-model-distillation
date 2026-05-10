@@ -1,5 +1,5 @@
 defaults:
-  - /model: mantis_student
+  - /model: student_classification
   - /writer: cometml
   - /metrics: classification
   - /datasets: ucr_gunpoint
@@ -15,7 +15,7 @@ model:
 
 optimizer:
   _target_: torch.optim.Adam
-  lr: 3e-5
+  lr: 3e-4
 
 lr_scheduler:
   _target_: torch.optim.lr_scheduler.CosineAnnealingLR
